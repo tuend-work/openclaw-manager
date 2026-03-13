@@ -18,32 +18,27 @@ echo -e "${BLUE}================================================${NC}"
 echo -e "${YELLOW}       BẮT ĐẦU CÀI ĐẶT OPENCLAW MANAGER         ${NC}"
 echo -e "${BLUE}================================================${NC}"
 
-# 1. Tạo thư mục nếu chưa có
-if [ ! -d "$MANAGER_DIR" ]; then
-    echo -e "${YELLOW}[1/4] Tạo thư mục quản lý tại $MANAGER_DIR...${NC}"
-    mkdir -p "$MANAGER_DIR"
-else
-    echo -e "${YELLOW}[1/4] Thư mục $MANAGER_DIR đã tồn tại. Sẽ cập nhật tệp...${NC}"
-fi
+# 1. Tự động nhận diện thư mục hiện tại
+MANAGER_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
+echo -e "${YELLOW}[1/4] Thư mục quản lý: $MANAGER_DIR...${NC}"
 
 # 2. Cấp quyền thực thi cho các file .sh
 echo -e "${YELLOW}[2/4] Thiết lập quyền thực thi cho các script...${NC}"
 chmod +x "$MANAGER_DIR"/*.sh 2>/dev/null
 
-# 3. Tạo Alias 'ocm' để truy cập nhanh
-echo -e "${YELLOW}[3/4] Cấu hình phím tắt 'ocm' và tự động chạy khi login...${NC}"
+# 3. Cấu hình phím tắt 'ocm' và tự động chạy khi login
+echo -e "${YELLOW}[3/4] Cấu hình phím tắt 'ocm' và SSH Welcome...${NC}"
 
-# Thêm alias vào .bashrc nếu chưa có
-if ! grep -q "alias ocm=" ~/.bashrc; then
-    echo "alias ocm='bash $MANAGER_DIR/menu.sh'" >> ~/.bashrc
-    echo -e "${GREEN}    - Đã thêm alias 'ocm'${NC}"
-fi
+# Xóa alias cũ nếu có và thêm alias mới
+sed -i '/alias ocm=/d' ~/.bashrc
+echo "alias ocm='bash $MANAGER_DIR/menu.sh'" >> ~/.bashrc
+echo -e "${GREEN}    - Đã cập nhật alias 'ocm'${NC}"
 
-# Thêm lệnh chạy wellcome.sh vào .bashrc nếu chưa có
-if ! grep -q "wellcome.sh" ~/.bashrc; then
-    echo "if [ -f \"$MANAGER_DIR/wellcome.sh\" ]; then bash \"$MANAGER_DIR/wellcome.sh\"; fi" >> ~/.bashrc
-    echo -e "${GREEN}    - Đã thêm lệnh tự động chạy menu khi login${NC}"
-fi
+# Xóa lệnh cũ nếu có và thêm lệnh welcome mới
+sed -i '/wellcome.sh/d' ~/.bashrc
+echo "if [ -f \"$MANAGER_DIR/wellcome.sh\" ]; then bash \"$MANAGER_DIR/wellcome.sh\"; fi" >> ~/.bashrc
+echo -e "${GREEN}    - Đã cập nhật lệnh tự động chạy menu${NC}"
+
 
 # 4. Kiểm tra các phụ thuộc cơ bản (tuỳ chọn)
 echo -e "${YELLOW}[4/4] Kiểm tra các gói phụ thuộc cơ bản (curl, git)...${NC}"
