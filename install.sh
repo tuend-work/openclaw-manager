@@ -58,13 +58,17 @@ echo -e "${YELLOW}[2/6] Thư mục quản lý: $MANAGER_DIR...${NC}"
 echo -e "${YELLOW}[3/6] Thiết lập quyền thực thi cho các script...${NC}"
 chmod +x "$MANAGER_DIR"/*.sh 2>/dev/null
 
-# 4. Cấu hình phím tắt 'ocm' và tự động chạy khi login
-echo -e "${YELLOW}[4/6] Cấu hình phím tắt 'ocm' và SSH Welcome...${NC}"
+# 4. Cấu hình phím tắt 'ocm' (Vĩnh viễn) và SSH Welcome
+echo -e "${YELLOW}[4/6] Cấu hình lệnh 'ocm' hệ thống và SSH Welcome...${NC}"
 
-# Xóa alias cũ nếu có và thêm alias mới
+# Tạo symlink trong /usr/local/bin để lệnh ocm có thể chạy ở mọi nơi, mọi lúc
+ln -sf "$MANAGER_DIR/menu.sh" /usr/local/bin/ocm
+chmod +x /usr/local/bin/ocm
+echo -e "${GREEN}    - Đã tạo lệnh hệ thống 'ocm' tại /usr/local/bin/ocm${NC}"
+
+# Vẫn giữ alias trong .bashrc để dự phòng
 sed -i '/alias ocm=/d' ~/.bashrc
-echo "alias ocm='bash $MANAGER_DIR/menu.sh'" >> ~/.bashrc
-echo -e "${GREEN}    - Đã cập nhật alias 'ocm'${NC}"
+echo "alias ocm='ocm'" >> ~/.bashrc
 
 # Xóa lệnh cũ nếu có và thêm lệnh tự động chạy menu khi login
 sed -i '/wellcome.sh/d' ~/.bashrc
