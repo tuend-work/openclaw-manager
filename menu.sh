@@ -5,18 +5,22 @@ REAL_PATH=$(readlink -f "${BASH_SOURCE[0]}")
 MANAGER_DIR="$( cd "$( dirname "$REAL_PATH" )" &> /dev/null && pwd )"
 
 
-# Color definitions
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-BLUE='\033[0;34m'
-CYAN='\033[0;36m'
+# Modern Color Palette
+RED='\033[0;91m'
+GREEN='\033[0;92m'
+YELLOW='\033[0;93m'
+BLUE='\033[0;94m'
+MAGENTA='\033[0;95m'
+CYAN='\033[0;96m'
+WHITE='\033[0;97m'
+BOLD='\033[1m'
 NC='\033[0m'
-BG_BLUE='\033[44m'
+BG_CYAN='\033[46m'
+BG_BLACK='\033[40m'
 
 # Check for root privileges
 if [ "$EUID" -ne 0 ]; then
-    echo -e "${RED}Lỗi: Vui lòng chạy lệnh này với quyền root (Sử dụng: sudo ocm hoặc đăng nhập root)${NC}"
+    echo -e "${RED}${BOLD}➤ Lỗi: Vui lòng chạy lệnh này với quyền root (sudo ocm)${NC}"
     exit 1
 fi
 
@@ -44,32 +48,31 @@ trap "tput cnorm; exit" SIGINT SIGTERM EXIT
 show_menu() {
     # Move cursor to top-left instead of clear to reduce flicker
     printf "\033[H"
-    echo -e "${BLUE}================================================${NC}"
-    echo -e "${YELLOW}       WELCOME TO OPEN-CLAW MANAGER (OCM)       ${NC}"
-    echo -e "${BLUE}================================================${NC}"
-    echo -e "Trạng thái hệ thống: ${GREEN}Đang hoạt động${NC}"
-    echo -e "OCM Version: ${YELLOW}v2.0.0${NC}"
-    echo -e "OpenClaw Version: ${YELLOW}${OPENCLAW_VER}${NC}"
-    echo -e "Địa chỉ IP: ${BLUE}${IP_ADDR}${NC}"
-    echo -e "${BLUE}------------------------------------------------${NC}"
-    echo -e "${CYAN}Sử dụng [↑/↓] để chọn hoặc nhấn phím số [1-8]:${NC}"
+    echo -e "${CYAN}┌──────────────────────────────────────────────┐${NC}"
+    echo -e "${CYAN}│${NC}       ${BOLD}${WHITE}WELCOME TO OPEN-CLAW MANAGER${NC}       ${CYAN}│${NC}"
+    echo -e "${CYAN}└──────────────────────────────────────────────┘${NC}"
+    echo -e " ${WHITE}●${NC} Trạng thái: ${GREEN}${BOLD}Active${NC}"
+    echo -e " ${WHITE}●${NC} OCM Version: ${MAGENTA}v2.1.0${NC}"
+    echo -e " ${WHITE}●${NC} OpenClaw: ${YELLOW}${OPENCLAW_VER}${NC}"
+    echo -e " ${WHITE}●${NC} IP v4: ${BLUE}${IP_ADDR}${NC}"
+    echo -e "${CYAN}------------------------------------------------${NC}"
+    echo -e " ${BOLD}${YELLOW}Sử dụng [↑/↓] hoặc phím số [1-8]:${NC}"
     echo ""
 
     for i in "${!options[@]}"; do
-        # Map loop index to display number (1-8, then 0 for exit)
         display_num=$((i + 1))
         [ $display_num -eq 9 ] && display_num=0
         
         if [ "$i" -eq "$current" ]; then
-            echo -e "  ${BG_BLUE}${YELLOW} ▶ $display_num. ${options[$i]} ${NC}"
+            echo -e "  ${BG_CYAN}${BOLD}${WHITE} ➜ $display_num. ${options[$i]} ${NC}"
         else
-            echo -e "     $display_num. ${options[$i]}               " 
+            echo -e "     ${WHITE}$display_num. ${options[$i]}               ${NC}" 
         fi
     done
     echo ""
-    echo -e "${BLUE}------------------------------------------------${NC}"
-    echo -e "HD: [Enter]: Chọn | [0]: Thoát | [Ctrl+C]: Thoát OCM"
-    echo -e "${BLUE}================================================${NC}"
+    echo -e "${CYAN}────────────────────────────────────────────────${NC}"
+    echo -e " ${WHITE}Shortcut: [Enter]: Chọn | [0]: Thoát${NC}"
+    echo -e "${CYAN}────────────────────────────────────────────────${NC}"
 }
 
 # Function to execute module based on index
