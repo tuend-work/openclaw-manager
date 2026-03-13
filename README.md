@@ -55,6 +55,7 @@ Sau khi cài đặt thành công, bạn có hai cách để truy cập OpenClaw 
 5.  **Nhật ký hệ thống**: Xem logs hoạt động để xử lý lỗi.
 6.  **Điều khiển dịch vụ**: Bật/Tắt các services của OpenClaw.
 7.  **Cập nhật Script OCM**: Tự động tải phiên bản mới nhất từ GitHub.
+8.  **Lệnh OpenClaw thường dùng**: Danh sách 10 lệnh CLI nhanh để quản trị OpenClaw.
 
 ---
 

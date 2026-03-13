@@ -1,0 +1,80 @@
+{
+    "auth": {
+        "profiles": {
+            "openrouter:default": {
+                "provider": "openrouter",
+                "mode": "api_key"
+            }
+        }
+    },
+    "gateway": {
+        "port": 18789,
+        "mode": "local",
+        "bind": "auto",
+        "controlUi": {
+            "allowedOrigins": [
+                "https://${DOMAIN_NAME}"
+            ]
+        },
+        "auth": {
+            "mode": "token",
+            "token": "${OPENCLAW_GATEWAY_TOKEN}"
+        },
+        "tailscale": {
+            "mode": "off",
+            "resetOnExit": false
+        },
+        "remote": {
+            "token": "${OPENCLAW_GATEWAY_TOKEN}"
+        },
+        "nodes": {
+            "denyCommands": [
+                "camera.snap",
+                "camera.clip",
+                "screen.record",
+                "contacts.add",
+                "calendar.add",
+                "reminders.add",
+                "sms.send"
+            ]
+        }
+    },
+    "agents": {
+        "defaults": {
+            "model": {
+                "primary": "openrouter/auto"
+            },
+            "models": {
+                "openrouter/auto": {
+                    "alias": "OpenRouter"
+                }
+            },
+            "workspace": "/root/.openclaw/workspace"
+        }
+    },
+    "channels": {
+        "telegram": {
+            "enabled": true,
+            "dmPolicy": "pairing",
+            "botToken": "${TELEGRAM_BOT_TOKEN}",
+            "groupPolicy": "open",
+            "streaming": "partial",
+            "allowFrom": [
+                "${TELEGRAM_ALLOW_USER_IDS_VALUE}"
+            ]
+        }
+    },
+    "session": {
+        "reset": {
+            "mode": "daily",
+            "atHour": 4
+        }
+    },
+    "plugins": {
+        "entries": {
+            "telegram": {
+                "enabled": true
+            }
+        }
+    }
+}

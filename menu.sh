@@ -36,9 +36,10 @@ show_menu() {
     echo -e "5. Nhật ký Hệ thống"
     echo -e "6. Điều khiển Dịch vụ"
     echo -e "7. Cập nhật Script OCM"
+    echo -e "8. Lệnh OpenClaw thường dùng"
     echo -e "0. Thoát"
     echo -e "${BLUE}================================================${NC}"
-    echo -n "Chọn chức năng [0-7]: "
+    echo -n "Chọn chức năng [0-8]: "
 }
 
 while true; do
@@ -52,6 +53,7 @@ while true; do
         5) bash "$MANAGER_DIR/manage_logs.sh" ;;
         6) bash "$MANAGER_DIR/manage_services.sh" ;;
         7) bash "$MANAGER_DIR/update_script.sh" ;;
+        8) bash "$MANAGER_DIR/manage_commands.sh" ;;
         0) exit 0 ;;
         *) echo -e "${RED}Lựa chọn không hợp lệ!${NC}"; sleep 1 ;;
     esac
