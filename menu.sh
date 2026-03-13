@@ -37,6 +37,7 @@ options=(
     "Điều khiển Dịch vụ"
     "Cập nhật Script OCM"
     "Lệnh OpenClaw thường dùng"
+    "Sao lưu & Khôi phục"
     "Thoát"
 )
 
@@ -56,12 +57,12 @@ show_menu() {
     echo -e " ${WHITE}●${NC} OpenClaw: ${YELLOW}${OPENCLAW_VER}${NC}"
     echo -e " ${WHITE}●${NC} IP v4: ${BLUE}${IP_ADDR}${NC}"
     echo -e "${CYAN}------------------------------------------------${NC}"
-    echo -e " ${BOLD}${YELLOW}Sử dụng [↑/↓] hoặc phím số [1-8]:${NC}"
+    echo -e " ${BOLD}${YELLOW}Sử dụng [↑/↓] hoặc phím số [1-9]:${NC}"
     echo ""
 
     for i in "${!options[@]}"; do
         display_num=$((i + 1))
-        [ $display_num -eq 9 ] && display_num=0
+        [ $display_num -eq 10 ] && display_num=0
         
         if [ "$i" -eq "$current" ]; then
             echo -e "  ${BG_CYAN}${BOLD}${WHITE} ➜ $display_num. ${options[$i]} ${NC}"
@@ -88,7 +89,8 @@ execute_module() {
         5) bash "$MANAGER_DIR/manage_services.sh" ;;
         6) bash "$MANAGER_DIR/update_script.sh" ;;
         7) bash "$MANAGER_DIR/manage_commands.sh" ;;
-        8) exit 0 ;;
+        8) bash "$MANAGER_DIR/manage_backup.sh" ;;
+        9) exit 0 ;;
     esac
     tput civis
     clear
@@ -115,11 +117,11 @@ while true; do
                     ;;
             esac
             ;;
-        [1-8]) # Number keys 1-8
+        [1-9]) # Number keys 1-9
             execute_module $((key - 1))
             ;;
         0) # Number key 0 (Exit)
-            execute_module 8
+            execute_module 9
             ;;
         "") # Enter key
             execute_module $current
