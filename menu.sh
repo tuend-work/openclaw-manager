@@ -1,7 +1,8 @@
 #!/bin/bash
 
-# Path to the manager directory (automatically detect current script directory)
-MANAGER_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
+# Path to the manager directory (automatically detect real script directory, handles symlinks)
+REAL_PATH=$(readlink -f "${BASH_SOURCE[0]}")
+MANAGER_DIR="$( cd "$( dirname "$REAL_PATH" )" &> /dev/null && pwd )"
 
 
 # Color definitions
@@ -10,6 +11,12 @@ GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
+
+# Check for root privileges
+if [ "$EUID" -ne 0 ]; then
+    echo -e "${RED}Lỗi: Vui lòng chạy lệnh này với quyền root (Sử dụng: sudo ocm hoặc đăng nhập root)${NC}"
+    exit 1
+fi
 
 show_menu() {
     clear
