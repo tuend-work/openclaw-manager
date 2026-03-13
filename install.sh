@@ -34,10 +34,11 @@ sed -i '/alias ocm=/d' ~/.bashrc
 echo "alias ocm='bash $MANAGER_DIR/menu.sh'" >> ~/.bashrc
 echo -e "${GREEN}    - Đã cập nhật alias 'ocm'${NC}"
 
-# Xóa lệnh cũ nếu có và thêm lệnh welcome mới
+# Xóa lệnh cũ nếu có và thêm lệnh tự động chạy menu khi login
 sed -i '/wellcome.sh/d' ~/.bashrc
-echo "if [ -f \"$MANAGER_DIR/wellcome.sh\" ]; then bash \"$MANAGER_DIR/wellcome.sh\"; fi" >> ~/.bashrc
-echo -e "${GREEN}    - Đã cập nhật lệnh tự động chạy menu${NC}"
+sed -i '/menu.sh/d' ~/.bashrc
+echo "if [ -f \"$MANAGER_DIR/menu.sh\" ]; then bash \"$MANAGER_DIR/menu.sh\"; fi" >> ~/.bashrc
+echo -e "${GREEN}    - Đã thiết lập tự động chạy menu khi login${NC}"
 
 
 # 4. Kiểm tra các gói phụ thuộc hệ thống

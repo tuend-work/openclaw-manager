@@ -14,8 +14,12 @@ NC='\033[0m' # No Color
 show_menu() {
     clear
     echo -e "${BLUE}================================================${NC}"
-    echo -e "${YELLOW}           OPENCLAW MANAGER MENU                ${NC}"
+    echo -e "${YELLOW}       WELCOME TO OPEN-CLAW MANAGER (OCM)       ${NC}"
     echo -e "${BLUE}================================================${NC}"
+    echo -e "Trạng thái hệ thống: ${GREEN}Đang hoạt động${NC}"
+    echo -e "Phiên bản OCM: ${YELLOW}v1.0.0${NC}"
+    echo -e "Địa chỉ IP: ${BLUE}$(hostname -I | awk '{print $1}')${NC}"
+    echo -e "${BLUE}------------------------------------------------${NC}"
     echo -e "1. Quản lý Domain & SSL"
     echo -e "2. Quản lý AI"
     echo -e "3. Quản lý Kênh Chat"

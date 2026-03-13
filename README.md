@@ -62,10 +62,10 @@ Sau khi cài đặt thành công, bạn có hai cách để truy cập OpenClaw 
 
 Tất cả các thành phần được lưu trữ tập trung tại: `/root/openclaw-manager/`
 
-- `menu.sh`: Script điều khiển chính.
+- `menu.sh`: Script điều khiển chính và giao diện chào mừng.
 - `install.sh`: Bộ cài đặt và cấu hình hệ thống.
 - `manage_*.sh`: Các module chức năng riêng biệt.
-- `wellcome.sh`: Script chào mừng khi login SSH.
+- `update_script.sh`: Module tự động cập nhật tool.
 
 ---
 
