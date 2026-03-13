@@ -52,18 +52,43 @@ show_menu() {
     echo -e "OpenClaw Version: ${YELLOW}${OPENCLAW_VER}${NC}"
     echo -e "Địa chỉ IP: ${BLUE}${IP_ADDR}${NC}"
     echo -e "${BLUE}------------------------------------------------${NC}"
-    echo -e "${CYAN}Sử dụng phím mũi tên [↑/↓] và phím Enter để chọn:${NC}"
+    echo -e "${CYAN}Sử dụng [↑/↓] để chọn hoặc nhấn phím số [1-8]:${NC}"
     echo ""
 
     for i in "${!options[@]}"; do
+        # Map loop index to display number (1-8, then 0 for exit)
+        display_num=$((i + 1))
+        [ $display_num -eq 9 ] && display_num=0
+        
         if [ "$i" -eq "$current" ]; then
-            echo -e "  ${BG_BLUE}${YELLOW} ▶ ${options[$i]} ${NC}"
+            echo -e "  ${BG_BLUE}${YELLOW} ▶ $display_num. ${options[$i]} ${NC}"
         else
-            echo -e "     ${options[$i]}               " # Padding to overwrite old content
+            echo -e "     $display_num. ${options[$i]}               " 
         fi
     done
     echo ""
+    echo -e "${BLUE}------------------------------------------------${NC}"
+    echo -e "HD: [Enter]: Chọn | [0]: Thoát | [Ctrl+C]: Thoát OCM"
     echo -e "${BLUE}================================================${NC}"
+}
+
+# Function to execute module based on index
+execute_module() {
+    local index=$1
+    tput cnorm
+    case $index in
+        0) bash "$MANAGER_DIR/manage_domain.sh" ;;
+        1) bash "$MANAGER_DIR/manage_ai.sh" ;;
+        2) bash "$MANAGER_DIR/manage_channels.sh" ;;
+        3) bash "$MANAGER_DIR/manage_versions.sh" ;;
+        4) bash "$MANAGER_DIR/manage_logs.sh" ;;
+        5) bash "$MANAGER_DIR/manage_services.sh" ;;
+        6) bash "$MANAGER_DIR/update_script.sh" ;;
+        7) bash "$MANAGER_DIR/manage_commands.sh" ;;
+        8) exit 0 ;;
+    esac
+    tput civis
+    clear
 }
 
 # Hide cursor
@@ -72,29 +97,29 @@ clear # Initial clear
 
 while true; do
     show_menu
-    read -rsn3 key
+    read -rsn1 key # Read 1 character only
+    
     case "$key" in
-        $'\x1b[A') # Up arrow
-            current=$(( (current - 1 + ${#options[@]}) % ${#options[@]} ))
+        # Arrow keys starting with escape
+        $'\x1b')
+            read -rsn2 -t 0.1 next_key
+            case "$next_key" in
+                "[A") # Up arrow
+                    current=$(( (current - 1 + ${#options[@]}) % ${#options[@]} ))
+                    ;;
+                "[B") # Down arrow
+                    current=$(( (current + 1) % ${#options[@]} ))
+                    ;;
+            esac
             ;;
-        $'\x1b[B') # Down arrow
-            current=$(( (current + 1) % ${#options[@]} ))
+        [1-8]) # Number keys 1-8
+            execute_module $((key - 1))
+            ;;
+        0) # Number key 0 (Exit)
+            execute_module 8
             ;;
         "") # Enter key
-            tput cnorm # Show cursor for sub-scripts
-            case $current in
-                0) bash "$MANAGER_DIR/manage_domain.sh" ;;
-                1) bash "$MANAGER_DIR/manage_ai.sh" ;;
-                2) bash "$MANAGER_DIR/manage_channels.sh" ;;
-                3) bash "$MANAGER_DIR/manage_versions.sh" ;;
-                4) bash "$MANAGER_DIR/manage_logs.sh" ;;
-                5) bash "$MANAGER_DIR/manage_services.sh" ;;
-                6) bash "$MANAGER_DIR/update_script.sh" ;;
-                7) bash "$MANAGER_DIR/manage_commands.sh" ;;
-                8) exit 0 ;;
-            esac
-            tput civis # Hide cursor again
-            clear # Re-clear for smooth return
+            execute_module $current
             ;;
     esac
 done
