@@ -32,9 +32,19 @@ show_commands() {
     echo -e "   ${BLUE}→ Lệnh: systemctl restart openclaw${NC}"
     echo -e "10. Cập nhật OpenClaw Core lên bản mới nhất"
     echo -e "    ${BLUE}→ Lệnh: curl ... | bash${NC}"
+    echo -e "11. Kiểm tra trạng thái TẤT CẢ (Status All)"
+    echo -e "    ${BLUE}→ Lệnh: openclaw status --all${NC}"
+    echo -e "12. Kiểm tra kết nối Kênh Chat (Probe Channels)"
+    echo -e "    ${BLUE}→ Lệnh: openclaw channels status --probe${NC}"
+    echo -e "13. Xem Log thời gian thực (Follow Logs)"
+    echo -e "    ${BLUE}→ Lệnh: openclaw logs --follow${NC}"
+    echo -e "14. Kiểm tra sức khỏe Model (Models Status)"
+    echo -e "    ${BLUE}→ Lệnh: openclaw models status${NC}"
+    echo -e "15. Kiểm tra Port 18789 (Check Port Conflict)"
+    echo -e "    ${BLUE}→ Lệnh: lsof -i :18789${NC}"
     echo -e "0. Quay lại Menu chính"
     echo -e "${BLUE}================================================${NC}"
-    echo -n "Chọn lệnh để chạy [0-10]: "
+    echo -n "Chọn lệnh để chạy [0-15]: "
 }
 
 while true; do
@@ -72,6 +82,26 @@ while true; do
         10) 
             echo -e "${YELLOW}Lệnh: curl -fsSL https://openclaw.ai/install.sh | bash${NC}"
             curl -fsSL https://openclaw.ai/install.sh | bash ;;
+        11) 
+            echo -e "${YELLOW}Lệnh: openclaw status --all${NC}"
+            openclaw status --all ;;
+        12) 
+            echo -e "${YELLOW}Lệnh: openclaw channels status --probe${NC}"
+            openclaw channels status --probe ;;
+        13) 
+            echo -e "${YELLOW}Lệnh: openclaw logs --follow${NC}"
+            echo -e "${BLUE}(Nhấn Ctrl+C để dừng theo dõi log)${NC}"
+            openclaw logs --follow ;;
+        14) 
+            echo -e "${YELLOW}Lệnh: openclaw models status${NC}"
+            openclaw models status ;;
+        15) 
+            echo -e "${YELLOW}Lệnh: lsof -i :18789${NC}"
+            if command -v lsof &> /dev/null; then
+                lsof -i :18789
+            else
+                netstat -tuln | grep 18789
+            fi ;;
         0) exit 0 ;;
         *) echo -e "${RED}Lựa chọn không hợp lệ!${NC}" ;;
     esac
