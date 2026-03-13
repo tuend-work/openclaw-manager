@@ -15,7 +15,7 @@ show_commands() {
     echo -e "1. Kiểm tra trạng thái Gateway (Status)"
     echo -e "   ${BLUE}→ Lệnh: openclaw gateway status${NC}"
     echo -e "2. Xem log Gateway mới nhất (Logs)"
-    echo -e "   ${BLUE}→ Lệnh: openclaw gateway logs --lines 20${NC}"
+    echo -e "   ${BLUE}→ Lệnh: openclaw logs --limit 20${NC}"
     echo -e "3. Danh sách thiết bị đã kết nối (Devices)"
     echo -e "   ${BLUE}→ Lệnh: openclaw devices list${NC}"
     echo -e "4. Danh sách các AI Agents (Agents)"
@@ -46,8 +46,8 @@ while true; do
             echo -e "${YELLOW}Lệnh: openclaw gateway status${NC}"
             openclaw gateway status ;;
         2) 
-            echo -e "${YELLOW}Lệnh: openclaw gateway logs --lines 20${NC}"
-            openclaw gateway logs --lines 20 ;;
+            echo -e "${YELLOW}Lệnh: openclaw logs --limit 20${NC}"
+            openclaw logs --limit 20 ;;
         3) 
             echo -e "${YELLOW}Lệnh: openclaw devices list${NC}"
             openclaw devices list ;;
