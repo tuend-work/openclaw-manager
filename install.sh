@@ -42,9 +42,9 @@ echo -e "${GREEN}    - Đã thiết lập tự động chạy menu khi login${NC
 
 
 # 4. Kiểm tra các gói phụ thuộc hệ thống
-echo -e "${YELLOW}[4/5] Kiểm tra các gói phụ thuộc (curl, git, nginx)...${NC}"
+echo -e "${YELLOW}[4/5] Kiểm tra các gói phụ thuộc (curl, git, nginx, certbot)...${NC}"
 apt update -y > /dev/null 2>&1
-apt install -y curl git certbot nginx sudo > /dev/null 2>&1
+apt install -y curl git nginx certbot python3-certbot-nginx sudo > /dev/null 2>&1
 
 # 5. Kiểm tra và cài đặt OpenClaw
 echo -e "${YELLOW}[5/5] Kiểm tra OpenClaw Core...${NC}"
