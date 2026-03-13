@@ -29,13 +29,13 @@ IP_ADDR=$(hostname -I | awk '{print $1}')
 OPENCLAW_VER=$(openclaw --version 2>/dev/null | awk '{print $2}' || echo "N/A")
 
 # Load variables from OpenClaw .env
-DOMAIN_NAME="$IP_ADDR"
+DOMAIN_NAME=$(hostname)
 GATEWAY_TOKEN="N/A"
 if [ -f "/root/.openclaw/.env" ]; then
     DOMAIN_NAME=$(grep "^DOMAIN_NAME=" /root/.openclaw/.env | cut -d'=' -f2 | tr -d '"'\'' ')
     GATEWAY_TOKEN=$(grep "^OPENCLAW_GATEWAY_TOKEN=" /root/.openclaw/.env | cut -d'=' -f2 | tr -d '"'\'' ')
 fi
-[ -z "$DOMAIN_NAME" ] && DOMAIN_NAME="$IP_ADDR"
+[ -z "$DOMAIN_NAME" ] && DOMAIN_NAME=$(hostname)
 
 options=(
     "Quản lý Domain & SSL"
