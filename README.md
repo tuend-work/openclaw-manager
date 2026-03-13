@@ -20,10 +20,8 @@ Bạn có thể cài đặt OpenClaw Manager lên VPS bằng cách sử dụng s
 
 ### Bước 1: Tải về và chuẩn bị
 ```bash
-mkdir -p /root/openclaw-manager
+git clone https://github.com/tuend-work/openclaw-manager.git .
 cd /root/openclaw-manager
-# Tải các tệp script về (Giả sử bạn đã upload hoặc sử dụng git)
-# git clone https://github.com/tuend-work/openclaw-manager.git .
 ```
 
 ### Bước 2: Chạy Script cài đặt
