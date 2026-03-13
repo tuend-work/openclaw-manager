@@ -40,7 +40,7 @@ show_menu() {
     echo -e "${YELLOW}       WELCOME TO OPEN-CLAW MANAGER (OCM)       ${NC}"
     echo -e "${BLUE}================================================${NC}"
     echo -e "Trạng thái hệ thống: ${GREEN}Đang hoạt động${NC}"
-    echo -e "OCM Version: ${YELLOW}v1.0.0${NC}"
+    echo -e "OCM Version: ${YELLOW}v2.0.0${NC}"
     echo -e "OpenClaw Version: ${YELLOW}$(openclaw --version 2>/dev/null | awk '{print $2}' || echo "N/A")${NC}"
     echo -e "Địa chỉ IP: ${BLUE}$(hostname -I | awk '{print $1}')${NC}"
     echo -e "${BLUE}------------------------------------------------${NC}"
