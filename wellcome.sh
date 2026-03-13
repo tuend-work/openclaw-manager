@@ -1,10 +1,20 @@
 
-# OpenClaw Manager Welcome Script
-# Để chạy menu này nhanh, bạn có thể thêm alias vào .bashrc:
-# alias ocm='bash /root/openclaw-manager/menu.sh'
+# OpenClaw Manager Welcome Banner
+# Showed upon SSH login
 
-if [ -f "/root/openclaw-manager/menu.sh" ]; then
-    bash "/root/openclaw-manager/menu.sh"
-else
-    echo "Lỗi: Không tìm thấy menu.sh trong /root/openclaw-manager/"
-fi
+# Color definitions
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+NC='\033[0m'
+
+echo -e "${BLUE}================================================${NC}"
+echo -e "${YELLOW}       WELCOME TO OPEN-CLAW MANAGER (OCM)       ${NC}"
+echo -e "${BLUE}================================================${NC}"
+echo -e "Trạng thái hệ thống: ${GREEN}Đang hoạt động${NC}"
+echo -e "Phiên bản OCM: ${YELLOW}v1.0.0${NC}"
+echo -e "Địa chỉ IP: ${BLUE}$(hostname -I | awk '{print $1}')${NC}"
+echo -e ""
+echo -e "Gõ lệnh ${YELLOW}ocm${NC} để mở Menu quản trị hệ thống."
+echo -e "${BLUE}================================================${NC}"

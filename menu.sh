@@ -1,7 +1,8 @@
 #!/bin/bash
 
-# Path to the manager directory
-MANAGER_DIR="/root/openclaw-manager"
+# Path to the manager directory (automatically detect current script directory)
+MANAGER_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
+
 
 # Color definitions
 RED='\033[0;31m'
