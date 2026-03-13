@@ -20,6 +20,10 @@ if [ "$EUID" -ne 0 ]; then
     exit 1
 fi
 
+# Caching system info to prevent lag
+IP_ADDR=$(hostname -I | awk '{print $1}')
+OPENCLAW_VER=$(openclaw --version 2>/dev/null | awk '{print $2}' || echo "N/A")
+
 options=(
     "Quản lý Domain & SSL"
     "Quản lý AI Agents"
@@ -34,15 +38,19 @@ options=(
 
 current=0
 
+# Clean up on exit (restore cursor)
+trap "tput cnorm; exit" SIGINT SIGTERM EXIT
+
 show_menu() {
-    clear
+    # Move cursor to top-left instead of clear to reduce flicker
+    printf "\033[H"
     echo -e "${BLUE}================================================${NC}"
     echo -e "${YELLOW}       WELCOME TO OPEN-CLAW MANAGER (OCM)       ${NC}"
     echo -e "${BLUE}================================================${NC}"
     echo -e "Trạng thái hệ thống: ${GREEN}Đang hoạt động${NC}"
     echo -e "OCM Version: ${YELLOW}v2.0.0${NC}"
-    echo -e "OpenClaw Version: ${YELLOW}$(openclaw --version 2>/dev/null | awk '{print $2}' || echo "N/A")${NC}"
-    echo -e "Địa chỉ IP: ${BLUE}$(hostname -I | awk '{print $1}')${NC}"
+    echo -e "OpenClaw Version: ${YELLOW}${OPENCLAW_VER}${NC}"
+    echo -e "Địa chỉ IP: ${BLUE}${IP_ADDR}${NC}"
     echo -e "${BLUE}------------------------------------------------${NC}"
     echo -e "${CYAN}Sử dụng phím mũi tên [↑/↓] và phím Enter để chọn:${NC}"
     echo ""
@@ -51,16 +59,19 @@ show_menu() {
         if [ "$i" -eq "$current" ]; then
             echo -e "  ${BG_BLUE}${YELLOW} ▶ ${options[$i]} ${NC}"
         else
-            echo -e "     ${options[$i]}"
+            echo -e "     ${options[$i]}               " # Padding to overwrite old content
         fi
     done
     echo ""
     echo -e "${BLUE}================================================${NC}"
 }
 
+# Hide cursor
+tput civis
+clear # Initial clear
+
 while true; do
     show_menu
-    # Read key input
     read -rsn3 key
     case "$key" in
         $'\x1b[A') # Up arrow
@@ -70,6 +81,7 @@ while true; do
             current=$(( (current + 1) % ${#options[@]} ))
             ;;
         "") # Enter key
+            tput cnorm # Show cursor for sub-scripts
             case $current in
                 0) bash "$MANAGER_DIR/manage_domain.sh" ;;
                 1) bash "$MANAGER_DIR/manage_ai.sh" ;;
@@ -81,9 +93,10 @@ while true; do
                 7) bash "$MANAGER_DIR/manage_commands.sh" ;;
                 8) exit 0 ;;
             esac
-            # Special case for Exit - loop will continue otherwise
-            [ $current -eq 8 ] && exit 0
+            tput civis # Hide cursor again
+            clear # Re-clear for smooth return
             ;;
     esac
 done
+
 
