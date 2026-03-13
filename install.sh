@@ -125,17 +125,11 @@ fi
 # 7. Thiết lập Cronjob tự động Approve thiết bị
 echo -e "${YELLOW}[7/7] Thiết lập Cronjob tự động Approve thiết bị (1 phút/lần)...${NC}"
 
-CRON_SCRIPT="$MANAGER_DIR/cronjob/auto-approve-device.sh"
-# Đảm bảo file tồn tại và có quyền chạy
-if [ -f "$CRON_SCRIPT" ]; then
-    chmod +x "$CRON_SCRIPT"
-    
-    # Kiểm tra và thêm cronjob nếu chưa có (tránh trùng lặp)
-    (crontab -l 2>/dev/null | grep -v "$CRON_SCRIPT"; echo "* * * * * bash $CRON_SCRIPT") | crontab -
-    echo -e "${GREEN}    - Đã thêm Cronjob tự động duyệt thiết bị mỗi phút.${NC}"
-else
-    echo -e "${RED}    - Cảnh báo: Không tìm thấy file $CRON_SCRIPT. Bỏ qua bước này.${NC}"
-fi
+CRON_CMD="openclaw devices approve --latest"
+
+# Kiểm tra và thêm cronjob nếu chưa có (tránh trùng lặp)
+(crontab -l 2>/dev/null | grep -v "openclaw devices approve"; echo "* * * * * $CRON_CMD > /dev/null 2>&1") | crontab -
+echo -e "${GREEN}    - Đã thêm Cronjob tự động duyệt thiết bị mỗi phút.${NC}"
 
 echo -e "${BLUE}================================================${NC}"
 echo -e "${GREEN}      CÀI ĐẶT HOÀN TẤT! HÃY CHẠY LỆNH SAU:      ${NC}"
