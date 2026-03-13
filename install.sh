@@ -125,7 +125,7 @@ fi
 # 7. Thiết lập Cronjob tự động Approve thiết bị
 echo -e "${YELLOW}[7/7] Thiết lập Cronjob tự động Approve thiết bị (1 phút/lần)...${NC}"
 
-CRON_CMD="openclaw devices approve --latest"
+CRON_CMD="/usr/bin/openclaw devices approve --latest"
 
 # Kiểm tra và thêm cronjob nếu chưa có (tránh trùng lặp)
 (crontab -l 2>/dev/null | grep -v "openclaw devices approve"; echo "* * * * * $CRON_CMD > /dev/null 2>&1") | crontab -
