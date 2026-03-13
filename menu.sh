@@ -10,13 +10,29 @@ RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
-NC='\033[0m' # No Color
+CYAN='\033[0;36m'
+NC='\033[0m'
+BG_BLUE='\033[44m'
 
 # Check for root privileges
 if [ "$EUID" -ne 0 ]; then
     echo -e "${RED}Lỗi: Vui lòng chạy lệnh này với quyền root (Sử dụng: sudo ocm hoặc đăng nhập root)${NC}"
     exit 1
 fi
+
+options=(
+    "Quản lý Domain & SSL"
+    "Quản lý AI Agents"
+    "Quản lý Kênh Chat"
+    "Quản lý Phiên bản"
+    "Nhật ký Hệ thống"
+    "Điều khiển Dịch vụ"
+    "Cập nhật Script OCM"
+    "Lệnh OpenClaw thường dùng"
+    "Thoát"
+)
+
+current=0
 
 show_menu() {
     clear
@@ -25,36 +41,49 @@ show_menu() {
     echo -e "${BLUE}================================================${NC}"
     echo -e "Trạng thái hệ thống: ${GREEN}Đang hoạt động${NC}"
     echo -e "OCM Version: ${YELLOW}v1.0.0${NC}"
-    echo -e "OpenClaw Version: ${YELLOW}$(openclaw --version | awk '{print $2}')${NC}"
-    echo -e "OpenClaw Dashboard: ${YELLOW}http://$(hostname -I | awk '{print $1}')/dashboard${NC}";
+    echo -e "OpenClaw Version: ${YELLOW}$(openclaw --version 2>/dev/null | awk '{print $2}' || echo "N/A")${NC}"
     echo -e "Địa chỉ IP: ${BLUE}$(hostname -I | awk '{print $1}')${NC}"
     echo -e "${BLUE}------------------------------------------------${NC}"
-    echo -e "1. Quản lý Domain & SSL"
-    echo -e "2. Quản lý AI Agents"
-    echo -e "3. Quản lý Kênh Chat"
-    echo -e "4. Quản lý Phiên bản"
-    echo -e "5. Nhật ký Hệ thống"
-    echo -e "6. Điều khiển Dịch vụ"
-    echo -e "7. Cập nhật Script OCM"
-    echo -e "8. Lệnh OpenClaw thường dùng"
-    echo -e "0. Thoát"
+    echo -e "${CYAN}Sử dụng phím mũi tên [↑/↓] và phím Enter để chọn:${NC}"
+    echo ""
+
+    for i in "${!options[@]}"; do
+        if [ "$i" -eq "$current" ]; then
+            echo -e "  ${BG_BLUE}${YELLOW} ▶ ${options[$i]} ${NC}"
+        else
+            echo -e "     ${options[$i]}"
+        fi
+    done
+    echo ""
     echo -e "${BLUE}================================================${NC}"
-    echo -n "Chọn chức năng [0-8]: "
 }
 
 while true; do
     show_menu
-    read choice
-    case $choice in
-        1) bash "$MANAGER_DIR/manage_domain.sh" ;;
-        2) bash "$MANAGER_DIR/manage_ai.sh" ;;
-        3) bash "$MANAGER_DIR/manage_channels.sh" ;;
-        4) bash "$MANAGER_DIR/manage_versions.sh" ;;
-        5) bash "$MANAGER_DIR/manage_logs.sh" ;;
-        6) bash "$MANAGER_DIR/manage_services.sh" ;;
-        7) bash "$MANAGER_DIR/update_script.sh" ;;
-        8) bash "$MANAGER_DIR/manage_commands.sh" ;;
-        0) exit 0 ;;
-        *) echo -e "${RED}Lựa chọn không hợp lệ!${NC}"; sleep 1 ;;
+    # Read key input
+    read -rsn3 key
+    case "$key" in
+        $'\x1b[A') # Up arrow
+            current=$(( (current - 1 + ${#options[@]}) % ${#options[@]} ))
+            ;;
+        $'\x1b[B') # Down arrow
+            current=$(( (current + 1) % ${#options[@]} ))
+            ;;
+        "") # Enter key
+            case $current in
+                0) bash "$MANAGER_DIR/manage_domain.sh" ;;
+                1) bash "$MANAGER_DIR/manage_ai.sh" ;;
+                2) bash "$MANAGER_DIR/manage_channels.sh" ;;
+                3) bash "$MANAGER_DIR/manage_versions.sh" ;;
+                4) bash "$MANAGER_DIR/manage_logs.sh" ;;
+                5) bash "$MANAGER_DIR/manage_services.sh" ;;
+                6) bash "$MANAGER_DIR/update_script.sh" ;;
+                7) bash "$MANAGER_DIR/manage_commands.sh" ;;
+                8) exit 0 ;;
+            esac
+            # Special case for Exit - loop will continue otherwise
+            [ $current -eq 8 ] && exit 0
+            ;;
     esac
 done
+
