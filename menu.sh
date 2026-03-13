@@ -28,6 +28,15 @@ fi
 IP_ADDR=$(hostname -I | awk '{print $1}')
 OPENCLAW_VER=$(openclaw --version 2>/dev/null | awk '{print $2}' || echo "N/A")
 
+# Load variables from OpenClaw .env
+DOMAIN_NAME="$IP_ADDR"
+GATEWAY_TOKEN="N/A"
+if [ -f "/root/.openclaw/.env" ]; then
+    DOMAIN_NAME=$(grep "^DOMAIN_NAME=" /root/.openclaw/.env | cut -d'=' -f2 | tr -d '"'\'' ')
+    GATEWAY_TOKEN=$(grep "^OPENCLAW_GATEWAY_TOKEN=" /root/.openclaw/.env | cut -d'=' -f2 | tr -d '"'\'' ')
+fi
+[ -z "$DOMAIN_NAME" ] && DOMAIN_NAME="$IP_ADDR"
+
 options=(
     "Quản lý Domain & SSL"
     "Quản lý AI Agents"
@@ -54,7 +63,7 @@ show_menu() {
     echo -e "${CYAN}└──────────────────────────────────────────────┘${NC}"
     echo -e " ${WHITE}●${NC} Trạng thái: ${GREEN}${BOLD}Active${NC}"
     echo -e " ${WHITE}●${NC} OCM Version: ${MAGENTA}v2.1.0${NC}"
-    echo -e " ${WHITE}●${NC} OpenClaw: ${YELLOW}${OPENCLAW_VER}${NC}"
+    echo -e " ${WHITE}●${NC} Dashboard: ${CYAN}https://${DOMAIN_NAME}/#token=${GATEWAY_TOKEN}${NC}"
     echo -e " ${WHITE}●${NC} IP v4: ${BLUE}${IP_ADDR}${NC}"
     echo -e "${CYAN}------------------------------------------------${NC}"
     echo -e " ${BOLD}${YELLOW}Sử dụng [↑/↓] hoặc phím số [1-9]:${NC}"
