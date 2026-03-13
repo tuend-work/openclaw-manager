@@ -20,11 +20,10 @@ BACKUP_DIR="/root/openclaw-backups"
 mkdir -p "$BACKUP_DIR"
 
 options=(
-    "Sao lưu toàn bộ cấu hình OpenClaw"
-    "Khôi phục cấu hình từ bản sao lưu"
-    "Sao lưu cấu hình Nginx"
-    "Xem danh sách các bản sao lưu"
-    "Xóa tất cả bản sao lưu cũ"
+    "Danh sách các bản sao lưu"
+    "Tạo bản sao lưu mới (OpenClaw + Nginx)"
+    "Khôi phục từ bản sao lưu"
+    "Xóa bản sao lưu"
     "Quay lại Menu chính"
 )
 
@@ -35,14 +34,14 @@ trap "tput cnorm; exit" SIGINT SIGTERM EXIT
 show_menu() {
     printf "\033[H"
     echo -e "${CYAN}┌──────────────────────────────────────────────┐${NC}"
-    echo -e "${CYAN}│${NC}       ${BOLD}${WHITE}SAO LƯU & KHÔI PHỤC (OCM)${NC}          ${CYAN}│${NC}"
+    echo -e "${CYAN}│${NC}       ${BOLD}${WHITE}QUẢN LÝ SAO LƯU HỆ THỐNG${NC}           ${CYAN}│${NC}"
     echo -e "${CYAN}└──────────────────────────────────────────────┘${NC}"
-    echo -e " ${BOLD}${YELLOW}Sử dụng [↑/↓] hoặc phím số [1-5]:${NC}"
+    echo -e " ${BOLD}${YELLOW}Sử dụng [↑/↓] hoặc phím số [1-4]:${NC}"
     echo ""
 
     for i in "${!options[@]}"; do
         display_num=$((i + 1))
-        [ $display_num -eq 6 ] && display_num=0
+        [ $display_num -eq 5 ] && display_num=0
         
         if [ "$i" -eq "$current" ]; then
             echo -e "  ${BG_CYAN}${BOLD}${WHITE} ➜ $display_num. ${options[$i]} ${NC}"
@@ -52,7 +51,7 @@ show_menu() {
     done
     echo ""
     echo -e "${CYAN}────────────────────────────────────────────────${NC}"
-    echo -e " ${WHITE}Backup Path: $BACKUP_DIR${NC}"
+    echo -e " ${WHITE}Thư mục lưu trữ: $BACKUP_DIR${NC}"
     echo -e "${CYAN}────────────────────────────────────────────────${NC}"
 }
 
@@ -62,52 +61,76 @@ execute_action() {
     tput cnorm
     
     case $index in
-        0) # Backup OpenClaw
-            TIMESTAMP=$(date +%Y%m%d_%H%M%S)
-            FILE_NAME="openclaw_backup_$TIMESTAMP.tar.gz"
-            echo -e "${YELLOW}Đang sao lưu cấu hình OpenClaw...${NC}"
-            tar -czf "$BACKUP_DIR/$FILE_NAME" -C /root .openclaw > /dev/null 2>&1
-            if [ $? -eq 0 ]; then
-                echo -e "${GREEN}Thành công! File lưu tại: $BACKUP_DIR/$FILE_NAME${NC}"
-            else
-                echo -e "${RED}Lỗi khi sao lưu!${NC}"
-            fi
-            ;;
-        1) # Restore OpenClaw
-            echo -e "${YELLOW}Danh sách bản sao lưu OpenClaw:${NC}"
-            ls -1 "$BACKUP_DIR" | grep "openclaw_backup"
-            echo ""
-            echo -n "Nhập tên file bạn muốn khôi phục (hoặc Enter để hủy): "
-            read restore_file
-            if [ -n "$restore_file" ] && [ -f "$BACKUP_DIR/$restore_file" ]; then
-                echo -e "${YELLOW}Đang khôi phục...${NC}"
-                tar -xzf "$BACKUP_DIR/$restore_file" -C /root
-                echo -e "${GREEN}Khôi phục hoàn tất!${NC}"
-            else
-                echo -e "${RED}File không hợp lệ hoặc đã hủy.${NC}"
-            fi
-            ;;
-        2) # Backup Nginx
-            TIMESTAMP=$(date +%Y%m%d_%H%M%S)
-            FILE_NAME="nginx_backup_$TIMESTAMP.tar.gz"
-            echo -e "${YELLOW}Đang sao lưu cấu hình Nginx...${NC}"
-            tar -czf "$BACKUP_DIR/$FILE_NAME" /etc/nginx > /dev/null 2>&1
-            echo -e "${GREEN}Thành công! File lưu tại: $BACKUP_DIR/$FILE_NAME${NC}"
-            ;;
-        3) # List backups
+        0) # List backups
             echo -e "${YELLOW}Danh sách các bản sao lưu hiện có:${NC}"
-            du -sh "$BACKUP_DIR"/* 2>/dev/null || echo "Không có bản sao lưu nào."
+            ls -lh "$BACKUP_DIR" | grep ".tar.gz" || echo "Chưa có bản sao lưu nào."
             ;;
-        4) # Delete all
-            echo -e "${RED}${BOLD}CẢNH BÁO: Hành động này sẽ xóa toàn bộ file backup!${NC}"
-            echo -n "Bạn có chắc chắn? (y/n): "
-            read confirm
-            if [[ "$confirm" == "y" ]]; then
-                rm -f "$BACKUP_DIR"/*.tar.gz
-                echo -e "${GREEN}Đã xóa sạch thư mục backup.${NC}"
+        1) # Create Backup
+            TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+            FILE_NAME="OCM_FULL_BACKUP_$TIMESTAMP.tar.gz"
+            echo -e "${YELLOW}Đang tiến hành sao lưu toàn bộ hệ thống...${NC}"
+            echo -e " - Đang đóng gói: ~/.openclaw và /etc/nginx"
+            
+            # Create a combined archive
+            tar -czf "$BACKUP_DIR/$FILE_NAME" -C / /root/.openclaw /etc/nginx > /dev/null 2>&1
+            
+            if [ $? -eq 0 ]; then
+                echo -e "${GREEN}${BOLD}Thành công!${NC}"
+                echo -e "File: ${WHITE}$FILE_NAME${NC}"
+                echo -e "Dung lượng: ${YELLOW}$(du -sh "$BACKUP_DIR/$FILE_NAME" | awk '{print $1}')${NC}"
+            else
+                echo -e "${RED}Lỗi xảy ra trong quá trình sao lưu!${NC}"
             fi
             ;;
-        5) exit 0 ;;
+        2) # Restore Backup
+            echo -e "${YELLOW}Chọn bản sao lưu để khôi phục:${NC}"
+            mapfile -t files < <(ls -1 "$BACKUP_DIR" | grep "OCM_FULL_BACKUP")
+            
+            if [ ${#files[@]} -eq 0 ]; then
+                echo -e "${RED}Không tìm thấy bản sao lưu nào!${NC}"
+            else
+                for i in "${!files[@]}"; do
+                    echo -e " $((i+1)). ${WHITE}${files[$i]}${NC}"
+                done
+                echo ""
+                echo -n "Chọn số thứ tự (hoặc Enter để hủy): "
+                read choice
+                
+                if [[ "$choice" =~ ^[0-9]+$ ]] && [ "$choice" -ge 1 ] && [ "$choice" -le "${#files[@]}" ]; then
+                    target_file="${files[$((choice-1))]}"
+                    echo -e "${RED}${BOLD}CẢNH BÁO: Khôi phục sẽ ghi đè cấu hình hiện tại!${NC}"
+                    echo -n "Xác nhận khôi phục $target_file? (y/n): "
+                    read confirm
+                    if [[ "$confirm" == "y" ]]; then
+                        echo -e "${YELLOW}Đang khôi phục hệ thống...${NC}"
+                        # Restore both paths
+                        tar -xzf "$BACKUP_DIR/$target_file" -C /
+                        # Test Nginx
+                        nginx -t && systemctl restart nginx
+                        echo -e "${GREEN}${BOLD}Khôi phục hoàn tất! Hệ thống đã sẵn sàng.${NC}"
+                    fi
+                else
+                    echo -e "${BLUE}Đã hủy khôi phục.${NC}"
+                fi
+            fi
+            ;;
+        3) # Delete Backup
+            echo -e "${YELLOW}Danh sách bản sao lưu:${NC}"
+            ls -1 "$BACKUP_DIR" | grep ".tar.gz"
+            echo ""
+            echo -n "Nhập tên file muốn xóa (hoặc ALL để xóa hết): "
+            read del_choice
+            if [[ "$del_choice" == "ALL" ]]; then
+                rm -f "$BACKUP_DIR"/*.tar.gz
+                echo -e "${GREEN}Đã xóa toàn bộ bản sao lưu.${NC}"
+            elif [ -f "$BACKUP_DIR/$del_choice" ]; then
+                rm -f "$BACKUP_DIR/$del_choice"
+                echo -e "${GREEN}Đã xóa file: $del_choice${NC}"
+            else
+                echo -e "${RED}File không tồn tại.${NC}"
+            fi
+            ;;
+        4) exit 0 ;;
     esac
     
     echo -e "${CYAN}────────────────────────────────────────────────${NC}"
@@ -130,7 +153,7 @@ while true; do
                 "[B") current=$(( (current + 1) % ${#options[@]} )) ;;
             esac
             ;;
-        [1-5]) execute_action $((key - 1)) ;;
+        [1-4]) execute_action $((key - 1)) ;;
         0) exit 0 ;;
         "") execute_action $current ;;
     esac
