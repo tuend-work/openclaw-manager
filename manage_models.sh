@@ -33,6 +33,7 @@ options=(
     "Quản lý Aliases (Model Aliases)"
     "Quản lý Fallbacks (Model Fallbacks)"
     "Xác thực Models (Model Auth)"
+    "Xóa Models (Delete Models)"
     "Quay lại Menu chính"
 )
 
@@ -46,12 +47,17 @@ show_menu() {
     echo -e "${CYAN}└──────────────────────────────────────────────┘${NC}"
     echo -e " ${WHITE}●${NC} CLI: ${CYAN}openclaw models <subcommand>${NC}"
     echo -e "${CYAN}------------------------------------------------${NC}"
-    echo -e " ${BOLD}${YELLOW}Sử dụng [↑/↓] hoặc phím số [1-9, 0]:${NC}"
+    echo -e " ${BOLD}${YELLOW}Sử dụng [↑/↓] hoặc phím số [1-9, a, 0]:${NC}"
     echo ""
 
     for i in "${!options[@]}"; do
-        display_num=$((i + 1))
-        [ $display_num -eq 10 ] && display_num=0
+        if [ "$i" -lt 9 ]; then
+            display_num=$((i + 1))
+        elif [ "$i" -eq 9 ]; then
+            display_num="a"
+        else
+            display_num="0"
+        fi
         
         # Colorize the parentheses description
         item_text="${options[$i]}"
@@ -75,7 +81,7 @@ show_menu() {
 
 execute_action() {
     local index=$1
-    if [ $index -eq 9 ]; then exit 0; fi # Option 0: Back
+    if [ $index -eq 10 ]; then exit 0; fi # Option 0: Back
     
     echo -e "${CYAN}────────────────────────────────────────────────${NC}"
     tput cnorm
@@ -163,6 +169,70 @@ execute_action() {
             echo -e "${YELLOW}Quản lý xác thực Model (Auth):${NC}"
             openclaw models auth
             ;;
+        9) # Delete Models
+            echo -e "${YELLOW}Đang tải danh sách Models...${NC}"
+            CONFIG_PATH="${OPENCLAW_CONFIG:-$HOME/.openclaw/openclaw.json}"
+            if [ -f "$CONFIG_PATH" ]; then
+                mapfile -t model_list < <(jq -r 'if .agents?.defaults?.models then .agents.defaults.models | keys[] else empty end' "$CONFIG_PATH" 2>/dev/null)
+            else
+                model_list=()
+            fi
+
+            if [ ${#model_list[@]} -eq 0 ]; then
+                echo -e "${RED}Chưa có model nào được thêm vào cấu hình (Hoặc đang dùng mặc định).${NC}"
+                echo -e "Bạn có thể gõ tay để xóa."
+                echo -n "Nhập Model ID cần xóa (bỏ trống để hủy): "
+                read manual_id
+                if [ -n "$manual_id" ]; then
+                    openclaw models remove "$manual_id"
+                    echo -e "${GREEN}Đã thực hiện lệnh xóa '$manual_id'.${NC}"
+                fi
+            else
+                echo -e "${CYAN}Danh sách Models hiện tại trong cấu hình:${NC}"
+                for i in "${!model_list[@]}"; do
+                    echo "  $((i+1)). ${model_list[$i]}"
+                done
+                echo "  ------------------------------------"
+                echo "  all. Xóa tất cả Model (Delete All)"
+                echo "  q. Nhập Model ID thủ công"
+                echo "  c. Hủy thao tác"
+                
+                echo -n -e "\n${YELLOW}Chọn số thứ tự model cần xóa, [all] để xóa hết, hoặc [c] để quay lại: ${NC}"
+                read del_opt
+                
+                if [[ "$del_opt" == "all" || "$del_opt" == "ALL" ]]; then
+                    echo -n -e "${RED}⚠️  CẢNH BÁO: Xóa tất cả các models trong cấu hình? (y/n): ${NC}"
+                    read confirm
+                    if [[ "$confirm" == [yY] || "$confirm" == [yY][eE][sS] ]]; then
+                        jq 'del(.agents.defaults.models) | del(.agents.defaults.model.fallbacks) | del(.agents.defaults.model.primary)' "$CONFIG_PATH" > "${CONFIG_PATH}.tmp" && mv "${CONFIG_PATH}.tmp" "$CONFIG_PATH"
+                        echo -e "${GREEN}Đã xóa sạch cấu hình bổ sung của AI Models.${NC}"
+                    else
+                        echo -e "${YELLOW}Đã hủy thao tác.${NC}"
+                    fi
+                elif [[ "$del_opt" == "q" || "$del_opt" == "Q" ]]; then
+                    echo -n "Nhập Model ID cần xóa: "
+                    read manual_id
+                    if [ -n "$manual_id" ]; then
+                        openclaw models remove "$manual_id"
+                        echo -e "${GREEN}Đã thực hiện lệnh xóa '$manual_id'.${NC}"
+                    fi
+                elif [[ "$del_opt" == "c" || "$del_opt" == "C" || -z "$del_opt" ]]; then
+                    echo -e "${YELLOW}Đã hủy thao tác.${NC}"
+                elif [[ "$del_opt" =~ ^[0-9]+$ ]] && [ "$del_opt" -gt 0 ] && [ "$del_opt" -le "${#model_list[@]}" ]; then
+                    m_to_delete="${model_list[$((del_opt-1))]}"
+                    echo -n -e "${YELLOW}Bạn có chắc chắn muốn xóa model ${BOLD}'$m_to_delete'${NC}? (y/n): "
+                    read confirm
+                    if [[ "$confirm" == [yY] || "$confirm" == [yY][eE][sS] ]]; then
+                        openclaw models remove "$m_to_delete"
+                        echo -e "${GREEN}Đã xóa: $m_to_delete${NC}"
+                    else
+                        echo -e "${YELLOW}Đã hủy xóa.${NC}"
+                    fi
+                else
+                    echo -e "${RED}Lựa chọn không hợp lệ.${NC}"
+                fi
+            fi
+            ;;
     esac
     
     echo -e "${CYAN}────────────────────────────────────────────────${NC}"
@@ -189,8 +259,11 @@ while true; do
         [1-9])
             execute_action $((key - 1))
             ;;
-        0)
+        a|A)
             execute_action 9
+            ;;
+        0)
+            execute_action 10
             ;;
         "")
             execute_action $current
