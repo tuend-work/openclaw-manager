@@ -38,16 +38,16 @@ fi
 [ -z "$DOMAIN_NAME" ] && DOMAIN_NAME=$(hostname)
 
 options=(
-    "Quản lý Domain & SSL"
-    "Quản lý AI Agents"
-    "Quản lý Kênh Chat"
-    "Quản lý Phiên bản"
-    "Nhật ký Hệ thống"
-    "Điều khiển Dịch vụ"
-    "Cập nhật Script OCM"
-    "Lệnh OpenClaw thường dùng"
-    "Sao lưu & Khôi phục"
-    "Thoát"
+    "Domain & SSL (Quản lý Tên miền & SSL)"
+    "AI Agents (Quản lý AI Agents)"
+    "Channels (Quản lý Kênh Chat)"
+    "Versions (Quản lý Phiên bản)"
+    "System Logs (Nhật ký Hệ thống)"
+    "Services (Điều khiển Dịch vụ)"
+    "Update OCM Script (Cập nhật Script OCM)"
+    "Tools (Công cụ)"
+    "Backup & Restore (Sao lưu & Khôi phục)"
+    "Exit (Thoát)"
 )
 
 current=0
