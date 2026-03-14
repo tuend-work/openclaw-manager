@@ -68,10 +68,61 @@ test_model() {
     local out_file=$2
     local start_time=$(date +%s%N)
     
-    # Chúng ta dùng lệnh ask yêu cầu giờ hiện tại, bắt buộc AI phải thực hiện Tool Call
-    # Nếu model không làm được Tool Call hoặc bị timeout, nó sẽ throw lỗi và bị loại bỏ.
-    # Cú pháp đúng: openclaw agent ask -m "message" --model "model_id" --plain
-    if timeout "${TIMEOUT}s" openclaw agent ask -m "Ngày giờ bây giờ là bao nhiêu?" --model "$m" --plain > /dev/null 2>&1; then
+    # 1. Trích xuất API Key từ .env hoặc cấu hình openclaw
+    local api_key=""
+    if [ -f "$HOME/.openclaw/.env" ]; then
+        api_key=$(grep "^OPENROUTER_API_KEY=" "$HOME/.openclaw/.env" | cut -d '=' -f 2- | tr -d '"' | tr -d "'")
+    fi
+    if [ -z "$api_key" ] && [ -f "$CONFIG_PATH" ]; then
+        api_key=$(jq -r '.auth.profiles."openrouter:default".credentials.apiKey // empty' "$CONFIG_PATH")
+    fi
+
+    # 2. Xử lý tên model chuẩn cho API
+    local api_model="${m#openrouter/}"
+    
+    # 3. Payload JSON yêu cầu Tool Call
+    local payload=$(cat <<EOF
+{
+  "model": "${api_model}",
+  "messages": [
+    {"role": "user", "content": "What is the weather in Tokyo right now?"}
+  ],
+  "tools": [
+    {
+      "type": "function",
+      "function": {
+        "name": "get_weather",
+        "description": "Get current weather in a location",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "location": {"type": "string", "description": "City name"}
+          },
+          "required": ["location"]
+        }
+      }
+    }
+  ],
+  "tool_choice": "auto"
+}
+EOF
+)
+
+    # 4. Gọi OpenRouter API bằng curl
+    local response=$(curl -s -w "\n%{http_code}" -X POST "https://openrouter.ai/api/v1/chat/completions" \
+        -H "Authorization: Bearer $api_key" \
+        -H "Content-Type: application/json" \
+        -H "HTTP-Referer: https://github.com/openclaw/openclaw" \
+        -H "X-Title: OpenClaw Manager" \
+        -d "$payload" \
+        --max-time "$TIMEOUT")
+        
+    # 5. Phân tích kết quả trả về
+    local http_status=$(echo "$response" | tail -n 1)
+    local body=$(echo "$response" | head -n -1)
+    
+    # Kiểm tra mã HTTP 200 và xác minh có property 'tool_calls' trong JSON
+    if [ "$http_status" -eq 200 ] && echo "$body" | jq -e '.choices[0].message.tool_calls | length > 0' > /dev/null 2>&1; then
         local end_time=$(date +%s%N)
         local delta=$(( (end_time - start_time) / 1000000 ))
         echo "$delta $m" > "$out_file"
