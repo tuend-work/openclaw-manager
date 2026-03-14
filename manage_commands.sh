@@ -53,7 +53,7 @@ commands=(
     "openclaw status --all"
     "openclaw channels status --probe"
     "openclaw logs --follow"
-    "openclaw models status"
+    "openclaw models status --probe --probe-provider openrouter --probe-timeout 60000"
     "lsof -i :18789"
     "bash \"$MANAGER_DIR/update_script.sh\""
     "toggle_cron"
@@ -123,7 +123,7 @@ execute_cmd() {
         10) echo -e "${YELLOW}Chạy: openclaw status --all${NC}"; openclaw status --all ;;
         11) echo -e "${YELLOW}Chạy: openclaw channels status --probe${NC}"; openclaw channels status --probe ;;
         12) echo -e "${YELLOW}Chạy: openclaw logs --follow${NC}"; echo -e "${BLUE}(Nhấn Ctrl+C để dừng)${NC}"; openclaw logs --follow ;;
-        13) echo -e "${YELLOW}Chạy: openclaw models status${NC}"; openclaw models status ;;
+        13) echo -e "${YELLOW}Chạy: openclaw models status${NC}"; openclaw models status --probe --probe-provider openrouter --probe-timeout 60000 ;;
         14) echo -e "${YELLOW}Chạy: lsof -i :18789${NC}"; lsof -i :18789 2>/dev/null || netstat -tuln | grep 18789 ;;
         15) echo -e "${YELLOW}Chạy: Cập nhật công cụ OCM...${NC}"; bash "$MANAGER_DIR/update_script.sh" ;;
         16) # Toggle Cron

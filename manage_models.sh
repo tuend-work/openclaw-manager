@@ -92,8 +92,8 @@ execute_action() {
             openclaw models list
             ;;
         1) # Status
-            echo -e "${YELLOW}Kiểm tra trạng thái các Models...${NC}"
-            openclaw models status
+            echo -e "${YELLOW}Kiểm tra trạng thái & API Key của các Models...${NC}"
+            openclaw models status --probe --probe-provider openrouter --probe-timeout 60000
             ;;
         2) # Scan
             echo -e "${YELLOW}Đang quét danh sách Models mới...${NC}"
