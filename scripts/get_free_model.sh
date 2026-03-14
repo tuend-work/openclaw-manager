@@ -126,6 +126,13 @@ EOF
         local end_time=$(date +%s%N)
         local delta=$(( (end_time - start_time) / 1000000 ))
         echo "$delta $m" > "$out_file"
+    else
+        # Ghi log debug nếu thất bại
+        echo "==============================" >> "$TMP_DIR/debug_log.txt"
+        echo "Model: $m" >> "$TMP_DIR/debug_log.txt"
+        echo "API Key: $api_key" | sed 's/.\{10\}$/********/' >> "$TMP_DIR/debug_log.txt"
+        echo "HTTP Status: $http_status" >> "$TMP_DIR/debug_log.txt"
+        echo "Response Body: $body" >> "$TMP_DIR/debug_log.txt"
     fi
 }
 
@@ -163,6 +170,10 @@ for f in "$TMP_DIR"/res_*; do
 done
 
 # Dọn dẹp RAM/Disk
+if [ -f "$TMP_DIR/debug_log.txt" ]; then
+    cp "$TMP_DIR/debug_log.txt" "/tmp/openclaw_debug_toolcall.log"
+    echo -e "${YELLOW}Đã lưu log debug lỗi API vào: /tmp/openclaw_debug_toolcall.log${NC}"
+fi
 rm -rf "$TMP_DIR"
 
 echo -e "\n${CYAN}4. KẾT QUẢ & CẤU HÌNH TỰ ĐỘNG:${NC}"
