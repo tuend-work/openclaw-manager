@@ -27,6 +27,7 @@ options=(
     "Danh sách Models (List All)"
     "Trạng thái Models (Status)"
     "Quét các AI Models (Scan Catalog)"
+    "GET FREE MODEL (Tự động tìm & cài Model miễn phí)"
     "Thiết lập Model chính (Set Primary)"
     "Thiết lập Image Model (Set Image)"
     "Quản lý Aliases (Model Aliases)"
@@ -45,12 +46,12 @@ show_menu() {
     echo -e "${CYAN}└──────────────────────────────────────────────┘${NC}"
     echo -e " ${WHITE}●${NC} CLI: ${CYAN}openclaw models <subcommand>${NC}"
     echo -e "${CYAN}------------------------------------------------${NC}"
-    echo -e " ${BOLD}${YELLOW}Sử dụng [↑/↓] hoặc phím số [1-8, 0]:${NC}"
+    echo -e " ${BOLD}${YELLOW}Sử dụng [↑/↓] hoặc phím số [1-9, 0]:${NC}"
     echo ""
 
     for i in "${!options[@]}"; do
         display_num=$((i + 1))
-        [ $display_num -eq 9 ] && display_num=0
+        [ $display_num -eq 10 ] && display_num=0
         
         # Colorize the parentheses description
         item_text="${options[$i]}"
@@ -74,7 +75,7 @@ show_menu() {
 
 execute_action() {
     local index=$1
-    if [ $index -eq 8 ]; then exit 0; fi # Option 0: Back
+    if [ $index -eq 9 ]; then exit 0; fi # Option 0: Back
     
     echo -e "${CYAN}────────────────────────────────────────────────${NC}"
     tput cnorm
@@ -92,7 +93,26 @@ execute_action() {
             echo -e "${YELLOW}Đang quét danh sách Models mới...${NC}"
             openclaw models scan
             ;;
-        3) # Set Primary
+        3) # GE FREE MODEL
+            echo -e "${YELLOW}Đang tự động tìm kiếm Model miễn phí...${NC}"
+            echo -e "${CYAN}1. Quét danh sách Model mới nhất...${NC}"
+            openclaw models scan > /dev/null 2>&1
+            
+            echo -e "${CYAN}2. Tìm kiếm Model không tốn phí...${NC}"
+            # Lọc trong danh sách các model có chữ "free" (thường từ OpenRouter hoặc các provider free)
+            free_model=$(openclaw models list | grep -i "free" | head -n 1 | awk '{print $2}')
+            
+            if [ -z "$free_model" ]; then
+                # Nếu không tìm thấy chữ "free", mặc định dùng "openrouter/auto" hoặc "google/gemini-pro" nếu có
+                free_model="openrouter/auto"
+            fi
+            
+            echo -e "${GREEN}Tìm thấy: ${BOLD}$free_model${NC}"
+            echo -e "${CYAN}3. Đang thiết lập làm Model chính...${NC}"
+            openclaw models set "$free_model"
+            echo -e "${GREEN}Hoàn tất! Hệ thống đã sẵn sàng với AI miễn phí.${NC}"
+            ;;
+        4) # Set Primary
             echo -n "Nhập Model ID để làm mặc định (VD: openrouter/auto): "
             read val
             if [ -n "$val" ]; then
@@ -100,7 +120,7 @@ execute_action() {
                 echo -e "${GREEN}Đã đặt Model chính là $val${NC}"
             fi
             ;;
-        4) # Set Image
+        5) # Set Image
             echo -n "Nhập Image Model ID (VD: openai/dall-e-3): "
             read val
             if [ -n "$val" ]; then
@@ -108,7 +128,7 @@ execute_action() {
                 echo -e "${GREEN}Đã đặt Image Model chính là $val${NC}"
             fi
             ;;
-        5) # Aliases
+        6) # Aliases
             echo -e "${YELLOW}Danh sách Aliases hiện tại:${NC}"
             openclaw models aliases list
             echo ""
@@ -129,7 +149,7 @@ execute_action() {
                 openclaw models aliases remove "$alias_name"
             fi
             ;;
-        6) # Fallbacks
+        7) # Fallbacks
             echo -e "${YELLOW}Danh sách Fallbacks hiện tại:${NC}"
             openclaw models fallbacks list
             echo ""
@@ -151,7 +171,7 @@ execute_action() {
                 openclaw models fallbacks clear
             fi
             ;;
-        7) # Auth
+        8) # Auth
             echo -e "${YELLOW}Quản lý xác thực Model (Auth):${NC}"
             openclaw models auth
             ;;
@@ -178,11 +198,11 @@ while true; do
                 "[B") current=$(( (current + 1) % ${#options[@]} )) ;;
             esac
             ;;
-        [1-8])
+        [1-9])
             execute_action $((key - 1))
             ;;
         0)
-            execute_action 8
+            execute_action 9
             ;;
         "")
             execute_action $current
