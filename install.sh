@@ -146,6 +146,41 @@ else
     fi
 fi
 
+install_gateway_service() {
+    mkdir -p ~/.config/systemd/user/
+    cat << 'EOF' > ~/.config/systemd/user/openclaw-gateway.service
+[Unit]
+Description=OpenClaw Gateway (v2026.3.12)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+ExecStart=/usr/bin/node /usr/lib/node_modules/openclaw/dist/index.js gateway --port 18789
+Restart=always
+RestartSec=5
+TimeoutStopSec=30
+TimeoutStartSec=30
+SuccessExitStatus=0 143
+KillMode=control-group
+Environment=HOME=/root
+Environment=TMPDIR=/tmp
+Environment=PATH=/root/.local/bin:/root/.npm-global/bin:/root/bin:/root/.volta/bin:/root/.asdf/shims:/root/.bun/bin:/root/.nvm/current/bin:/root/.fnm/current/bin:/root/.local/share/pnpm:/usr/local/bin:/usr/bin:/bin
+Environment=OPENCLAW_GATEWAY_PORT=18789
+Environment=OPENCLAW_SYSTEMD_UNIT=openclaw-gateway.service
+Environment="OPENCLAW_WINDOWS_TASK_NAME=OpenClaw Gateway"
+Environment=OPENCLAW_SERVICE_MARKER=openclaw
+Environment=OPENCLAW_SERVICE_KIND=gateway
+Environment=OPENCLAW_SERVICE_VERSION=2026.3.12
+
+[Install]
+WantedBy=default.target
+EOF
+    # Reload systemd và khởi động service
+    systemctl --user daemon-reload > /dev/null 2>&1
+    systemctl --user enable openclaw-gateway.service > /dev/null 2>&1
+    systemctl --user restart openclaw-gateway.service > /dev/null 2>&1
+}
+
 # Kiểm tra lệnh openclaw
 if ! command -v openclaw &> /dev/null; then
     echo -e "${YELLOW}    - Không tìm thấy OpenClaw. Đang tiến hành cài đặt tự động...${NC}"
@@ -168,21 +203,20 @@ if ! command -v openclaw &> /dev/null; then
         # Cập nhật hostname và token mật khẩu tự động
         sed -i "s/ai.example.com/$(hostname)/g" "$HOME/.openclaw/.env"
         sed -i "s/your_secure_random_token_here/$(openssl rand -hex 32)/g" "$HOME/.openclaw/.env"
+        # Cài đặt Gateway Service thủ công
+        install_gateway_service
 
         # Chạy khởi tạo cơ bản
         openclaw onboard --no-interactive > /dev/null 2>&1
-        # Cài đặt Gateway Service
-        openclaw gateway install > /dev/null 2>&1
-        openclaw gateway start > /dev/null 2>&1
+        
     else
         echo -e "${RED}    - Cài đặt OpenClaw thất bại. Vui lòng kiểm tra lại thủ công.${NC}"
     fi
 else
     echo -e "${GREEN}    - OpenClaw đã được cài đặt.${NC}"
     echo -e "${YELLOW}    - Đang thiết lập OpenClaw Gateway Service...${NC}"
-    # Đảm bảo service được cài và chạy nếu đã có openclaw
-    openclaw gateway install > /dev/null 2>&1 || true
-    openclaw gateway start > /dev/null 2>&1 || true
+    # Đảm bảo service được cài và chạy
+    install_gateway_service
 fi
 
 # Kích hoạt tính năng Auto-Completion (Bash) cho OpenClaw
