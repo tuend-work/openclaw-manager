@@ -93,24 +93,69 @@ execute_action() {
             echo -e "${YELLOW}Đang quét danh sách Models mới...${NC}"
             openclaw models scan
             ;;
-        3) # GE FREE MODEL
-            echo -e "${YELLOW}Đang tự động tìm kiếm Model miễn phí...${NC}"
-            echo -e "${CYAN}1. Quét danh sách Model mới nhất...${NC}"
+        3) # GET FREE MODEL
+            echo -e "${YELLOW}Đang thực hiện quy trình tối ưu AI Miễn phí...${NC}"
+            echo -e "${CYAN}1. Quét và thu thập danh sách Model miễn phí...${NC}"
             openclaw models scan > /dev/null 2>&1
             
-            echo -e "${CYAN}2. Tìm kiếm Model không tốn phí...${NC}"
-            # Lọc trong danh sách các model có chữ "free" (thường từ OpenRouter hoặc các provider free)
-            free_model=$(openclaw models list | grep -i "free" | head -n 1 | awk '{print $2}')
+            # Lấy danh sách ID các model free (thường là từ OpenRouter)
+            mapfile -t free_models < <(openclaw models list | grep -i "free" | awk '{print $2}' | sort -u)
             
-            if [ -z "$free_model" ]; then
-                # Nếu không tìm thấy chữ "free", mặc định dùng "openrouter/auto" hoặc "google/gemini-pro" nếu có
-                free_model="openrouter/auto"
+            if [ ${#free_models[@]} -eq 0 ]; then
+                echo -e "${RED}Không tìm thấy Model miễn phí nào. Cài đặt mặc định openrouter/auto...${NC}"
+                openclaw models set "openrouter/auto"
+            else
+                echo -e "${CYAN}Tìm thấy ${#free_models[@]} models. Đang kiểm tra tốc độ phản hồi...${NC}"
+                echo -e "${GRAY}(Vui lòng chờ, quá trình này có thể mất 1-2 phút)${NC}"
+                
+                fastest_model=""
+                min_time=9999
+                
+                # Clear old fallbacks to start fresh
+                openclaw models fallbacks clear > /dev/null 2>&1
+                
+                for m in "${free_models[@]}"; do
+                    echo -n -e "  ➜ Trình mẫu: ${BLUE}$m${NC} ... "
+                    
+                    # Benchmark latency
+                    start_t=$(date +%s%N)
+                    # Use a very short timeout and minimal prompt
+                    timeout 15s openclaw agent ask "ok" --model "$m" --plain > /dev/null 2>&1
+                    res=$?
+                    end_t=$(date +%s%N)
+                    
+                    if [ $res -eq 0 ]; then
+                        delta=$(( (end_t - start_t) / 1000000 )) # ms
+                        echo -e "${GREEN}${delta}ms${NC}"
+                        
+                        if [ $delta -lt $min_time ]; then
+                            min_time=$delta
+                            fastest_model=$m
+                        fi
+                        
+                        # Add to fallbacks if it's not the fastest later (we'll do this after finding the fastest)
+                    else
+                        echo -e "${RED}Timeout/Error${NC}"
+                    fi
+                done
+                
+                if [ -n "$fastest_model" ]; then
+                    echo -e "\n${MAGENTA}${BOLD}KẾT QUẢ:${NC}"
+                    echo -e "🥇 Model nhanh nhất: ${GREEN}$fastest_model${NC} (${min_time}ms)"
+                    
+                    echo -e "${CYAN}Đang thiết lập Model chính và danh sách dự phòng...${NC}"
+                    openclaw models set "$fastest_model"
+                    
+                    for m in "${free_models[@]}"; do
+                        if [ "$m" != "$fastest_model" ]; then
+                            openclaw models fallbacks add "$m" > /dev/null 2>&1
+                        fi
+                    done
+                    echo -e "${GREEN}Đã cấu hình xong! Toàn bộ Model free đã được nạp vào hệ thống.${NC}"
+                else
+                    echo -e "${RED}Tất cả Model thử nghiệm đều thất bại. Hãy kiểm tra kết nối mạng/API Key.${NC}"
+                fi
             fi
-            
-            echo -e "${GREEN}Tìm thấy: ${BOLD}$free_model${NC}"
-            echo -e "${CYAN}3. Đang thiết lập làm Model chính...${NC}"
-            openclaw models set "$free_model"
-            echo -e "${GREEN}Hoàn tất! Hệ thống đã sẵn sàng với AI miễn phí.${NC}"
             ;;
         4) # Set Primary
             echo -n "Nhập Model ID để làm mặc định (VD: openrouter/auto): "
