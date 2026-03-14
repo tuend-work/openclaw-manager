@@ -94,88 +94,10 @@ execute_action() {
             openclaw models scan
             ;;
         3) # GET FREE MODEL
-            echo -e "${YELLOW}Đang thực hiện quy trình tối ưu AI Miễn phí (Xử lý song song)...${NC}"
-            
-            echo -e "${CYAN}1. Cập nhật Catalog Models...${NC}"
-            openclaw models scan > /dev/null 2>&1
-            
-            # Lấy danh sách ID các model free
-            mapfile -t free_models < <(openclaw models list | grep -i "free" | awk '{print $2}' | sort -u)
-            total_free=${#free_models[@]}
-            
-            if [ $total_free -eq 0 ]; then
-                echo -e "${RED}Không tìm thấy Model miễn phí nào. Cài đặt mặc định openrouter/auto...${NC}"
-                openclaw models set "openrouter/auto"
+            if [ -f "$MANAGER_DIR/scripts/get_free_model.sh" ]; then
+                bash "$MANAGER_DIR/scripts/get_free_model.sh"
             else
-                echo -e "\n${CYAN}2. Tìm thấy ${total_free} Model. Đang kiểm tra tốc độ đồng loạt...${NC}"
-                echo -e "${GRAY}Hệ thống đang gửi tín hiệu test tới tất cả server cùng lúc...${NC}"
-                
-                # Tạo thư mục tạm để lưu kết quả song song
-                tmp_results=$(mktemp -d)
-                
-                # Chạy song song tất cả các test
-                for i in "${!free_models[@]}"; do
-                    (
-                        m="${free_models[$i]}"
-                        start_time=$(date +%s%N)
-                        if timeout 8s openclaw agent ask "hi" --model "$m" --plain > /dev/null 2>&1; then
-                            end_time=$(date +%s%N)
-                            delta=$(( (end_time - start_time) / 1000000 ))
-                            echo "$delta $m" > "$tmp_results/res_$i"
-                        fi
-                    ) &
-                done
-                
-                # Hiển thị thanh tiến trình động trong khi chờ các background jobs
-                echo -n -e "  ➜ Tiến trình: ["
-                for ((i=0; i<30; i++)); do
-                    echo -n "●"
-                    sleep 0.3
-                done
-                echo -e "] ${GREEN}Xong!${NC}"
-
-                # Thu thập và phân tích kết quả
-                fastest_model=""
-                min_time=99999
-                
-                # Gom kết quả
-                if ls "$tmp_results"/res_* >/dev/null 2>&1; then
-                    while IFS= read -r line; do
-                        t=$(echo "$line" | awk '{print $1}')
-                        mod=$(echo "$line" | awk '{print $2}')
-                        if [ -n "$t" ] && [ "$t" -lt "$min_time" ]; then
-                            min_time=$t
-                            fastest_model=$mod
-                        fi
-                    done < <(cat "$tmp_results"/res_*)
-                fi
-                
-                # Dọn dẹp
-                rm -rf "$tmp_results"
-                
-                if [ -n "$fastest_model" ]; then
-                    echo -e "\n${MAGENTA}${BOLD}┌──────────────────────────────────────────────┐${NC}"
-                    echo -e "${MAGENTA}${BOLD}│${NC}  ${BOLD}${WHITE}KẾT QUẢ TỐI ƯU HÓA HOÀN TẤT${NC}               ${MAGENTA}${BOLD}│${NC}"
-                    echo -e "${MAGENTA}${BOLD}└──────────────────────────────────────────────┘${NC}"
-                    echo -e " 🥇 ${BOLD}Nhanh nhất:${NC} ${GREEN}$fastest_model${NC} (${min_time}ms)"
-                    
-                    echo -e "\n${CYAN}3. Đang cấu hình hệ thống...${NC}"
-                    echo -e "  ➜ Đặt làm Model chính... ${GREEN}OK${NC}"
-                    openclaw models set "$fastest_model" > /dev/null 2>&1
-                    
-                    echo -e "  ➜ Nạp các model còn lại vào danh sách dự phòng...${NC}"
-                    fb_count=0
-                    for m in "${free_models[@]}"; do
-                        if [ "$m" != "$fastest_model" ]; then
-                            openclaw models fallbacks add "$m" > /dev/null 2>&1
-                            fb_count=$((fb_count + 1))
-                        fi
-                    done
-                    echo -e "  ➜ Đã nạp ${GREEN}${fb_count}${NC} model dự phòng. ${GREEN}Hoàn tất!${NC}"
-                else
-                    echo -e "\n${RED}Tất cả Model thử nghiệm đều thất bại hoặc Timeout.${NC}"
-                    echo -e "${YELLOW}Gợi ý: Hãy kiểm tra Internet hoặc dùng lệnh 'OpenClaw Command > Health' để check.${NC}"
-                fi
+                echo -e "${RED}Lỗi: Không tìm thấy file scripts/get_free_model.sh${NC}"
             fi
             ;;
         4) # Set Primary
