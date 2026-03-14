@@ -13,6 +13,7 @@ BLUE='\033[0;94m'
 MAGENTA='\033[0;95m'
 CYAN='\033[0;96m'
 WHITE='\033[0;97m'
+GRAY='\033[0;90m'
 BOLD='\033[1m'
 NC='\033[0m'
 BG_CYAN='\033[46m'
@@ -74,10 +75,18 @@ show_menu() {
         display_num=$((i + 1))
         [ $display_num -eq 10 ] && display_num=0
         
-        if [ "$i" -eq "$current" ]; then
-            echo -e "  ${BG_CYAN}${BOLD}${WHITE} ➜ $display_num. ${options[$i]} ${NC}"
+        # Colorize the Vietnamese description in parentheses
+        item_text="${options[$i]}"
+        if [[ "$item_text" =~ (.*)(\(.*\))(.*) ]]; then
+            colored_text="${BASH_REMATCH[1]}${GRAY}${BASH_REMATCH[2]}${NC}${BASH_REMATCH[3]}"
         else
-            echo -e "     ${WHITE}$display_num. ${options[$i]}               ${NC}" 
+            colored_text="$item_text"
+        fi
+
+        if [ "$i" -eq "$current" ]; then
+            echo -e "  ${BG_CYAN}${BOLD}${WHITE} ➜ $display_num. ${colored_text} ${NC}"
+        else
+            echo -e "     ${WHITE}$display_num. ${colored_text}               ${NC}" 
         fi
     done
     echo ""
