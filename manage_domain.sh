@@ -84,7 +84,7 @@ fi
 # 6. Cập nhật OpenClaw Config
 echo -e "${YELLOW}>> Đang cập nhật Allowed Origins cho OpenClaw Dashboard...${NC}"
 if command -v openclaw &> /dev/null; then
-    openclaw config set gateway.controlUi.allowedOrigins "https://$domain" > /dev/null 2>&1
+    openclaw config set gateway.controlUi.allowedOrigins "[\"https://$domain\"]" > /dev/null 2>&1
     systemctl restart openclaw > /dev/null 2>&1
     echo -e "${GREEN}Đã cấu hình OpenClaw nhận diện Domain mới!${NC}"
 fi
