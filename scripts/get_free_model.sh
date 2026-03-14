@@ -47,7 +47,7 @@ if [ -f "$CONFIG_PATH" ]; then
     # Dùng jq để xóa các model cũ có catalog là "openrouter-free"
     jq '
       if .agents?.defaults?.models then
-        .agents.defaults.models |= with_entries(select(.value.catalog != "openrouter-free"))
+        .agents.defaults.models |= with_entries(select(.value.catalog != "free"))
       else
         .
       end
