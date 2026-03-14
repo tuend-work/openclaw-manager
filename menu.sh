@@ -43,6 +43,7 @@ options=(
     "Domain & SSL (Quản lý Tên miền & SSL)"
     "AI Agents (Quản lý AI Agents)"
     "Channels (Quản lý Kênh Chat)"
+    "Models (Quản lý AI Models)"
     "System Logs (Nhật ký Hệ thống)"
     "Services (Điều khiển Dịch vụ)"
     "Tools (Công cụ)"
@@ -69,12 +70,12 @@ show_menu() {
     echo -e " ${WHITE}●${NC} Dashboard: ${CYAN}https://${DOMAIN_NAME}/#token=${GATEWAY_TOKEN}${NC}"
     echo -e " ${WHITE}●${NC} OC: ${MAGENTA}${OPENCLAW_VER}${NC} | OCM: ${MAGENTA}v2.1.0${NC} | IP: ${BLUE}${IP_ADDR}${NC}"
     echo -e "${CYAN}------------------------------------------------${NC}"
-    echo -e " ${BOLD}${YELLOW}Sử dụng [↑/↓] hoặc phím số [1-9]:${NC}"
+    echo -e " ${BOLD}${YELLOW}Sử dụng [↑/↓] hoặc phím số [1-10]:${NC}"
     echo ""
 
     for i in "${!options[@]}"; do
         display_num=$((i + 1))
-        [ $display_num -eq 10 ] && display_num=0
+        [ $display_num -eq 11 ] && display_num=0
         
         # Colorize the Vietnamese description in parentheses
         item_text="${options[$i]}"
@@ -105,12 +106,13 @@ execute_module() {
         1) bash "$MANAGER_DIR/manage_domain.sh" ;;
         2) bash "$MANAGER_DIR/manage_ai.sh" ;;
         3) bash "$MANAGER_DIR/manage_channels.sh" ;;
-        4) bash "$MANAGER_DIR/manage_logs.sh" ;;
-        5) bash "$MANAGER_DIR/manage_services.sh" ;;
-        6) bash "$MANAGER_DIR/manage_commands.sh" ;;
-        7) bash "$MANAGER_DIR/manage_settings.sh" ;;
-        8) bash "$MANAGER_DIR/manage_backup.sh" ;;
-        9) exit 0 ;;
+        4) bash "$MANAGER_DIR/manage_models.sh" ;;
+        5) bash "$MANAGER_DIR/manage_logs.sh" ;;
+        6) bash "$MANAGER_DIR/manage_services.sh" ;;
+        7) bash "$MANAGER_DIR/manage_commands.sh" ;;
+        8) bash "$MANAGER_DIR/manage_settings.sh" ;;
+        9) bash "$MANAGER_DIR/manage_backup.sh" ;;
+        10) exit 0 ;;
     esac
     tput civis
     clear
@@ -159,8 +161,9 @@ while true; do
                 show_menu
                 gather_system_stats
                 ;;
-            0) # Number key 0 (Exit)
-                execute_module 9
+            0) # Number key 0 (Exit or 10)
+                # If there are 11 items, 0 could be index 10
+                execute_module 10
                 ;;
             "") # Enter key
                 execute_module $current
