@@ -12,6 +12,7 @@ BLUE='\033[0;94m'
 MAGENTA='\033[0;95m'
 CYAN='\033[0;96m'
 WHITE='\033[0;97m'
+GRAY='\033[0;90m'
 BOLD='\033[1m'
 NC='\033[0m'
 BG_CYAN='\033[46m'
@@ -33,6 +34,7 @@ options=(
     "Kiểm tra sức khỏe Model (Models Status)"
     "Kiểm tra Port 18789 (Check Port Conflict)"
     "Cập nhật Script OCM (Update Manager)"
+    "Bật/Tắt Auto-Approve Device (Cronjob)"
     "Quay lại Menu chính"
 )
 
@@ -53,6 +55,7 @@ commands=(
     "openclaw models status"
     "lsof -i :18789"
     "bash \"$MANAGER_DIR/update_script.sh\""
+    "toggle_cron"
     ""
 )
 
@@ -66,21 +69,29 @@ show_commands() {
     echo -e "${CYAN}┌──────────────────────────────────────────────┐${NC}"
     echo -e "${CYAN}│${NC}       ${BOLD}${WHITE}LỆNH OPENCLAW THƯỜNG DÙNG${NC}          ${CYAN}│${NC}"
     echo -e "${CYAN}└──────────────────────────────────────────────┘${NC}"
-    echo -e " ${BOLD}${YELLOW}Sử dụng [↑/↓] hoặc phím số [1-16]:${NC}"
+    echo -e " ${BOLD}${YELLOW}Sử dụng [↑/↓] hoặc phím số [1-17]:${NC}"
     echo ""
 
     for i in "${!options[@]}"; do
         display_num=$((i + 1))
-        # For sub-menus, 1-16 are commands, last one (17) is Back
-        [ $display_num -eq 17 ] && display_display="0" || display_display="$display_num"
+        # For sub-menus, 1-17 are commands, last one (18) is Back
+        [ $display_num -eq 18 ] && display_display="0" || display_display="$display_num"
         
+        # Colorize the description in parentheses
+        item_text="${options[$i]}"
+        if [[ "$item_text" =~ (.*)(\(.*\))(.*) ]]; then
+            colored_text="${BASH_REMATCH[1]}${GRAY}${BASH_REMATCH[2]}${NC}${BASH_REMATCH[3]}"
+        else
+            colored_text="$item_text"
+        fi
+
         if [ "$i" -eq "$current" ]; then
-            echo -e "  ${BG_CYAN}${BOLD}${WHITE} ➜ $display_display. ${options[$i]} ${NC}"
+            echo -e "  ${BG_CYAN}${BOLD}${WHITE} ➜ $display_display. ${colored_text} ${NC}"
             if [ -n "${commands[$i]}" ]; then
                 echo -e "     ${BLUE}→ ${commands[$i]}${NC}"
             fi
         else
-            echo -e "     ${WHITE}$display_display. ${options[$i]}               ${NC}"
+            echo -e "     ${WHITE}$display_display. ${colored_text}               ${NC}"
         fi
     done
     echo ""
@@ -91,7 +102,7 @@ show_commands() {
 
 execute_cmd() {
     local index=$1
-    if [ $index -eq 16 ]; then exit 0; fi # Option 0: Back
+    if [ $index -eq 17 ]; then exit 0; fi # Option 0: Back
     
     echo -e "${CYAN}────────────────────────────────────────────────${NC}"
     tput cnorm
@@ -112,6 +123,17 @@ execute_cmd() {
         13) echo -e "${YELLOW}Chạy: openclaw models status${NC}"; openclaw models status ;;
         14) echo -e "${YELLOW}Chạy: lsof -i :18789${NC}"; lsof -i :18789 2>/dev/null || netstat -tuln | grep 18789 ;;
         15) echo -e "${YELLOW}Chạy: Cập nhật công cụ OCM...${NC}"; bash "$MANAGER_DIR/update_script.sh" ;;
+        16) # Toggle Cron
+            echo -e "${YELLOW}Đang thiết lập Cronjob...${NC}"
+            CRON_CMD="/usr/bin/openclaw devices approve --latest"
+            if crontab -l 2>/dev/null | grep -q "openclaw devices approve"; then
+                (crontab -l 2>/dev/null | grep -v "openclaw devices approve") | crontab -
+                echo -e "${RED}Đã TẮT tự động duyệt thiết bị.${NC}"
+            else
+                (crontab -l 2>/dev/null; echo "* * * * * $CRON_CMD > /dev/null 2>&1") | crontab -
+                echo -e "${GREEN}Đã BẬT tự động duyệt thiết bị (mỗi phút).${NC}"
+            fi
+            ;;
     esac
     echo -e "${CYAN}────────────────────────────────────────────────${NC}"
     read -p "Nhấn Enter để tiếp tục..."
@@ -140,7 +162,7 @@ while true; do
             # Simplified: 1-9 direct, 0 for back.
             execute_cmd $((key - 1))
             ;;
-        0) execute_cmd 16 ;;
+        0) execute_cmd 17 ;;
         "") execute_cmd $current ;;
     esac
 done
