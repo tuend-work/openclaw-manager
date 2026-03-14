@@ -158,17 +158,16 @@ if ! command -v openclaw &> /dev/null; then
         sudo loginctl enable-linger root > /dev/null 2>&1
         echo -e "${YELLOW}    - Đang thiết lập OpenClaw Gateway Service...${NC}"
 
-        #code copy file /openclaw-templates/openclaw.env.example thành /openclaw.env
-        cp /openclaw-templates/openclaw.env.example /root/.openclaw/.env
+        # Đảm bảo thư mục tồn tại
+        mkdir -p "$HOME/.openclaw"
 
-        #code replace value từ your_domain_name thành hostname trong file /root/.openclaw/.env
-        sed -i 's/your_domain_name/$(hostname)/g' /root/.openclaw/.env
-        
-        #replace value từ your_secure_random_token_here thành giá trị ngẫu nhiên
-        sed -i 's/your_secure_random_token_here/$(openssl rand -hex 32)/g' /root/.openclaw/.env
+        # Copy file mẫu cấu hình
+        cp "$MANAGER_DIR/openclaw-templates/openclaw.env.example" "$HOME/.openclaw/.env"
+        cp "$MANAGER_DIR/openclaw-templates/openclaw.json" "$HOME/.openclaw/"
 
-        #code copy file openclaw.json vào /root/.openclaw/
-        cp /openclaw-templates/openclaw.json /root/.openclaw/
+        # Cập nhật hostname và token mật khẩu tự động
+        sed -i "s/ai.example.com/$(hostname)/g" "$HOME/.openclaw/.env"
+        sed -i "s/your_secure_random_token_here/$(openssl rand -hex 32)/g" "$HOME/.openclaw/.env"
 
         # Chạy khởi tạo cơ bản
         openclaw onboard --no-interactive > /dev/null 2>&1
