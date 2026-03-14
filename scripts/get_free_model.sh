@@ -70,7 +70,8 @@ test_model() {
     
     # Chúng ta dùng lệnh ask yêu cầu giờ hiện tại, bắt buộc AI phải thực hiện Tool Call
     # Nếu model không làm được Tool Call hoặc bị timeout, nó sẽ throw lỗi và bị loại bỏ.
-    if timeout "${TIMEOUT}s" openclaw agent ask "Ngày giờ bây giờ là bao nhiêu?" --model "$m" --plain > /dev/null 2>&1; then
+    # Cú pháp đúng: openclaw agent ask -m "message" --model "model_id" --plain
+    if timeout "${TIMEOUT}s" openclaw agent ask -m "Ngày giờ bây giờ là bao nhiêu?" --model "$m" --plain > /dev/null 2>&1; then
         local end_time=$(date +%s%N)
         local delta=$(( (end_time - start_time) / 1000000 ))
         echo "$delta $m" > "$out_file"
