@@ -19,7 +19,7 @@ BG_CYAN='\033[46m'
 
 options=(
     "Kiểm tra trạng thái Gateway (Status)"
-    "Xem log Gateway mới nhất (Logs)"
+    "View Log Openclaw Realtime (Follow Logs)"
     "Danh sách thiết bị đã kết nối (Devices)"
     "Danh sách các AI Agents (Agents)"
     "Danh sách các Skills đã cài (Skills)"
@@ -41,7 +41,7 @@ options=(
 
 commands=(
     "openclaw gateway status"
-    "openclaw logs --limit 20"
+    "openclaw logs --follow"
     "openclaw devices list"
     "openclaw agents list"
     "openclaw skills list"
@@ -111,7 +111,7 @@ execute_cmd() {
     tput cnorm
     case $index in
         0) echo -e "${YELLOW}Chạy: openclaw gateway status${NC}"; openclaw gateway status ;;
-        1) echo -e "${YELLOW}Chạy: openclaw logs --limit 20${NC}"; openclaw logs --limit 20 ;;
+        1) echo -e "${YELLOW}Chạy: openclaw logs --follow${NC}"; echo -e "${BLUE}(Nhấn Ctrl+C để dừng)${NC}"; openclaw logs --follow ;;
         2) echo -e "${YELLOW}Chạy: openclaw devices list${NC}"; openclaw devices list ;;
         3) echo -e "${YELLOW}Chạy: openclaw agents list${NC}"; openclaw agents list ;;
         4) echo -e "${YELLOW}Chạy: openclaw skills list${NC}"; openclaw skills list ;;
