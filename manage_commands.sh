@@ -1,5 +1,9 @@
 #!/bin/bash
 
+# Real path to script directory
+REAL_PATH=$(readlink -f "$0")
+MANAGER_DIR="$( cd "$( dirname "$REAL_PATH" )" &> /dev/null && pwd )"
+
 # Modern Color Palette
 RED='\033[0;91m'
 GREEN='\033[0;92m'
@@ -28,6 +32,7 @@ options=(
     "Xem Log thời gian thực (Follow Logs)"
     "Kiểm tra sức khỏe Model (Models Status)"
     "Kiểm tra Port 18789 (Check Port Conflict)"
+    "Cập nhật Script OCM (Update Manager)"
     "Quay lại Menu chính"
 )
 
@@ -47,6 +52,7 @@ commands=(
     "openclaw logs --follow"
     "openclaw models status"
     "lsof -i :18789"
+    "bash \"$MANAGER_DIR/update_script.sh\""
     ""
 )
 
@@ -60,13 +66,13 @@ show_commands() {
     echo -e "${CYAN}┌──────────────────────────────────────────────┐${NC}"
     echo -e "${CYAN}│${NC}       ${BOLD}${WHITE}LỆNH OPENCLAW THƯỜNG DÙNG${NC}          ${CYAN}│${NC}"
     echo -e "${CYAN}└──────────────────────────────────────────────┘${NC}"
-    echo -e " ${BOLD}${YELLOW}Sử dụng [↑/↓] hoặc phím số [1-15]:${NC}"
+    echo -e " ${BOLD}${YELLOW}Sử dụng [↑/↓] hoặc phím số [1-16]:${NC}"
     echo ""
 
     for i in "${!options[@]}"; do
         display_num=$((i + 1))
-        # For sub-menus, 1-15 are commands, last one (16) is Back
-        [ $display_num -eq 16 ] && display_display="0" || display_display="$display_num"
+        # For sub-menus, 1-16 are commands, last one (17) is Back
+        [ $display_num -eq 17 ] && display_display="0" || display_display="$display_num"
         
         if [ "$i" -eq "$current" ]; then
             echo -e "  ${BG_CYAN}${BOLD}${WHITE} ➜ $display_display. ${options[$i]} ${NC}"
@@ -85,7 +91,7 @@ show_commands() {
 
 execute_cmd() {
     local index=$1
-    if [ $index -eq 15 ]; then exit 0; fi # Option 0: Back
+    if [ $index -eq 16 ]; then exit 0; fi # Option 0: Back
     
     echo -e "${CYAN}────────────────────────────────────────────────${NC}"
     tput cnorm
@@ -105,6 +111,7 @@ execute_cmd() {
         12) echo -e "${YELLOW}Chạy: openclaw logs --follow${NC}"; echo -e "${BLUE}(Nhấn Ctrl+C để dừng)${NC}"; openclaw logs --follow ;;
         13) echo -e "${YELLOW}Chạy: openclaw models status${NC}"; openclaw models status ;;
         14) echo -e "${YELLOW}Chạy: lsof -i :18789${NC}"; lsof -i :18789 2>/dev/null || netstat -tuln | grep 18789 ;;
+        15) echo -e "${YELLOW}Chạy: Cập nhật công cụ OCM...${NC}"; bash "$MANAGER_DIR/update_script.sh" ;;
     esac
     echo -e "${CYAN}────────────────────────────────────────────────${NC}"
     read -p "Nhấn Enter để tiếp tục..."
@@ -133,7 +140,7 @@ while true; do
             # Simplified: 1-9 direct, 0 for back.
             execute_cmd $((key - 1))
             ;;
-        0) execute_cmd 15 ;;
+        0) execute_cmd 16 ;;
         "") execute_cmd $current ;;
     esac
 done

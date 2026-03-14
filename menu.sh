@@ -42,10 +42,8 @@ options=(
     "Domain & SSL (Quản lý Tên miền & SSL)"
     "AI Agents (Quản lý AI Agents)"
     "Channels (Quản lý Kênh Chat)"
-    "Versions (Quản lý Phiên bản)"
     "System Logs (Nhật ký Hệ thống)"
     "Services (Điều khiển Dịch vụ)"
-    "Update OCM Script (Cập nhật Script OCM)"
     "Tools (Công cụ)"
     "Backup & Restore (Sao lưu & Khôi phục)"
     "Exit (Thoát)"
@@ -69,12 +67,12 @@ show_menu() {
     echo -e " ${WHITE}●${NC} Dashboard: ${CYAN}https://${DOMAIN_NAME}/#token=${GATEWAY_TOKEN}${NC}"
     echo -e " ${WHITE}●${NC} OC: ${MAGENTA}${OPENCLAW_VER}${NC} | OCM: ${MAGENTA}v2.1.0${NC} | IP: ${BLUE}${IP_ADDR}${NC}"
     echo -e "${CYAN}------------------------------------------------${NC}"
-    echo -e " ${BOLD}${YELLOW}Sử dụng [↑/↓] hoặc phím số [1-9]:${NC}"
+    echo -e " ${BOLD}${YELLOW}Sử dụng [↑/↓] hoặc phím số [1-7]:${NC}"
     echo ""
 
     for i in "${!options[@]}"; do
         display_num=$((i + 1))
-        [ $display_num -eq 10 ] && display_num=0
+        [ $display_num -eq 8 ] && display_num=0
         
         # Colorize the Vietnamese description in parentheses
         item_text="${options[$i]}"
@@ -104,13 +102,11 @@ execute_module() {
         0) bash "$MANAGER_DIR/manage_domain.sh" ;;
         1) bash "$MANAGER_DIR/manage_ai.sh" ;;
         2) bash "$MANAGER_DIR/manage_channels.sh" ;;
-        3) bash "$MANAGER_DIR/manage_versions.sh" ;;
-        4) bash "$MANAGER_DIR/manage_logs.sh" ;;
-        5) bash "$MANAGER_DIR/manage_services.sh" ;;
-        6) bash "$MANAGER_DIR/update_script.sh" ;;
-        7) bash "$MANAGER_DIR/manage_commands.sh" ;;
-        8) bash "$MANAGER_DIR/manage_backup.sh" ;;
-        9) exit 0 ;;
+        3) bash "$MANAGER_DIR/manage_logs.sh" ;;
+        4) bash "$MANAGER_DIR/manage_services.sh" ;;
+        5) bash "$MANAGER_DIR/manage_commands.sh" ;;
+        6) bash "$MANAGER_DIR/manage_backup.sh" ;;
+        7) exit 0 ;;
     esac
     tput civis
     clear
@@ -154,13 +150,13 @@ while true; do
                         ;;
                 esac
                 ;;
-            [1-9]) # Number keys 1-9
+            [1-7]) # Number keys 1-7
                 execute_module $((key - 1))
                 show_menu
                 gather_system_stats
                 ;;
             0) # Number key 0 (Exit)
-                execute_module 9
+                execute_module 7
                 ;;
             "") # Enter key
                 execute_module $current
