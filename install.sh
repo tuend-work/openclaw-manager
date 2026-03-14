@@ -57,6 +57,7 @@ echo -e "${YELLOW}[2/7] Thư mục quản lý: $MANAGER_DIR...${NC}"
 # 3. Cấp quyền thực thi cho các file .sh
 echo -e "${YELLOW}[3/7] Thiết lập quyền thực thi cho các script...${NC}"
 chmod +x "$MANAGER_DIR"/*.sh 2>/dev/null
+chmod +x "$MANAGER_DIR"/cronjob/*.sh 2>/dev/null
 
 # 4. Cấu hình phím tắt 'ocm' (Vĩnh viễn) và SSH Welcome
 echo -e "${YELLOW}[4/7] Cấu hình 'ocm' ${NC}"
@@ -76,25 +77,67 @@ echo "if [ -f \"$MANAGER_DIR/menu.sh\" ]; then bash \"$MANAGER_DIR/menu.sh\"; fi
 # 5. Kiểm tra các gói phụ thuộc hệ thống theo OS
 echo -e "${YELLOW}[5/7] Cài đặt gói phụ thuộc cho hệ điều hành $OS...${NC}"
 
+PACKAGES="curl git nginx certbot python3-certbot-nginx sudo"
+
 if [[ "$OS" == "ubuntu" || "$OS" == "debian" ]]; then
+    echo -e "${CYAN}    - Đang cập nhật kho ứng dụng (apt update)...${NC}"
     apt update -y > /dev/null 2>&1
-    apt install -y curl git nginx certbot python3-certbot-nginx sudo > /dev/null 2>&1
+    for pkg in $PACKAGES; do
+        echo -e "${CYAN}    - Đang cài đặt: ${WHITE}$pkg${NC}"
+        apt install -y $pkg > /dev/null 2>&1
+    done
 elif [[ "$OS" == "centos" || "$OS" == "rhel" || "$OS" == "fedora" ]]; then
+    echo -e "${CYAN}    - Đang cài đặt: ${WHITE}epel-release${NC}"
     yum install -y epel-release > /dev/null 2>&1
-    yum install -y curl git nginx certbot python3-certbot-nginx sudo > /dev/null 2>&1
+    for pkg in $PACKAGES; do
+        echo -e "${CYAN}    - Đang cài đặt: ${WHITE}$pkg${NC}"
+        yum install -y $pkg > /dev/null 2>&1
+    done
 else
     echo -e "${RED}Lỗi: Hệ điều hành $OS chưa được hỗ trợ tự động cài gói. Hãy cài curl, git, nginx thủ công.${NC}"
 fi
 
-# 6. Kiểm tra và cài đặt OpenClaw
-echo -e "${YELLOW}[6/7] Kiểm tra OpenClaw Core...${NC}"
+# 6. Kiểm tra Cơ sở hạ tầng và cài đặt OpenClaw
+echo -e "${YELLOW}[6/7] Kiểm tra hệ thống & OpenClaw Core...${NC}"
 
+# Kiểm tra bộ nhớ Swap
+echo -e "${YELLOW}    - Kiểm tra bộ nhớ Swap...${NC}"
+SWAP_SIZE=$(free -m | grep -i swap | awk '{print $2}')
+if [ -z "$SWAP_SIZE" ] || [ "$SWAP_SIZE" -eq 0 ]; then
+    echo -e "${CYAN}    - Không tìm thấy Swap. Đang tạo 2GB Swap để tăng tính ổn định...${NC}"
+    # Dùng fallocate nhanh hơn, dự phòng bằng dd nếu file system không support
+    fallocate -l 2G /swapfile 2>/dev/null || dd if=/dev/zero of=/swapfile bs=1M count=2048 > /dev/null 2>&1
+    chmod 600 /swapfile
+    mkswap /swapfile > /dev/null 2>&1
+    swapon /swapfile > /dev/null 2>&1
+    # Thêm vào fstab để tự mount khi khởi động lại (tránh trùng lặp)
+    if ! grep -q "/swapfile" /etc/fstab; then
+        echo "/swapfile none swap sw 0 0" >> /etc/fstab
+    fi
+    echo -e "${GREEN}    - Đã tạo thành công 2GB Swap.${NC}"
+else
+    echo -e "${GREEN}    - Bộ nhớ Swap đã có sẵn (${SWAP_SIZE}MB).${NC}"
+fi
+
+# Tối ưu hóa RAM cho Node.js (Chống tràn RAM)
+echo -e "${YELLOW}    - Thiết lập giới hạn bộ nhớ cho Node.js...${NC}"
+sed -i '/NODE_OPTIONS=.*max-old-space-size/d' ~/.bashrc
+echo "export NODE_OPTIONS=\"--max-old-space-size=\$((\$(grep MemTotal /proc/meminfo | awk '{print \$2}') / 1024 ))\"" >> ~/.bashrc
+export NODE_OPTIONS="--max-old-space-size=$(($(grep MemTotal /proc/meminfo | awk '{print $2}') / 1024 ))"
+echo -e "${GREEN}    - Đã cấu hình NODE_OPTIONS thành công.${NC}"
 
 # Kiểm tra Node.js (Yêu cầu Node 22+)
 if ! command -v node &> /dev/null; then
     echo -e "${YELLOW}    - Đang cài đặt Node.js (v24)...${NC}"
-    curl -fsSL https://deb.nodesource.com/setup_24.x | sudo -E bash - > /dev/null 2>&1
-    sudo apt-get install -y nodejs > /dev/null 2>&1
+    if [[ "$OS" == "ubuntu" || "$OS" == "debian" ]]; then
+        curl -fsSL https://deb.nodesource.com/setup_24.x | sudo -E bash - > /dev/null 2>&1
+        sudo apt-get install -y nodejs > /dev/null 2>&1
+    elif [[ "$OS" == "centos" || "$OS" == "rhel" || "$OS" == "fedora" ]]; then
+        curl -fsSL https://rpm.nodesource.com/setup_24.x | sudo bash - > /dev/null 2>&1
+        sudo yum install -y nodejs > /dev/null 2>&1
+    else
+        echo -e "${RED}    - Hệ điều hành chưa được hỗ trợ tự động cài Node.js. Vui lòng cài thủ công.${NC}"
+    fi
 else
     NODE_VER=$(node -v | cut -d'v' -f2 | cut -d'.' -f1)
     if [ "$NODE_VER" -lt 22 ]; then
@@ -106,10 +149,13 @@ fi
 # Kiểm tra lệnh openclaw
 if ! command -v openclaw &> /dev/null; then
     echo -e "${YELLOW}    - Không tìm thấy OpenClaw. Đang tiến hành cài đặt tự động...${NC}"
-    curl -fsSL https://openclaw.ai/install.sh | bash
+    curl -fsSL --proto '=https' --tlsv1.2 https://openclaw.ai/install.sh | bash -s -- --no-onboard
     
     if command -v openclaw &> /dev/null; then
         echo -e "${GREEN}    - Cài đặt OpenClaw thành công!${NC}"
+        # Đảm bảo các user services (như OpenClaw daemon) tiếp tục chạy sau khi SSH logout
+        echo -e "${YELLOW}    - Thiết lập quyền chạy ngầm (linger) cho root...${NC}"
+        sudo loginctl enable-linger root > /dev/null 2>&1
         echo -e "${YELLOW}    - Đang khởi tạo OpenClaw daemon...${NC}"
         openclaw onboard --install-daemon --no-interactive > /dev/null 2>&1
     else
@@ -119,17 +165,26 @@ else
     echo -e "${GREEN}    - OpenClaw đã được cài đặt.${NC}"
 fi
 
-# 7. Thiết lập Cronjob tự động Approve thiết bị
+# Kích hoạt tính năng Auto-Completion (Bash) cho OpenClaw
+echo -e "${YELLOW}    - Bật tính năng gợi ý lệnh (Bash Completion) cho OpenClaw...${NC}"
+openclaw completion --shell bash --install > /dev/null 2>&1
+# Sourcing profile cho phiên làm việc hiện tại luôn
+source ~/.bashrc > /dev/null 2>&1 || true
+
+# 7. Thiết lập Cronjob
 echo -e "${YELLOW}[7/7] Thiết lập Cronjob ${NC}"
 
 CRON_CMD="/usr/bin/openclaw devices approve --latest"
+CRON_REBOOT_SCRIPT="$MANAGER_DIR/cronjob/check-reboot-hostname.sh"
+
+# Khởi tạo file last_hostname lần đầu
+hostname > "$MANAGER_DIR/cronjob/.last_hostname"
 
 # Kiểm tra và thêm cronjob nếu chưa có (tránh trùng lặp)
-(crontab -l 2>/dev/null | grep -v "openclaw devices approve"; echo "* * * * * $CRON_CMD > /dev/null 2>&1") | crontab -
+(crontab -l 2>/dev/null | grep -v "openclaw devices approve" | grep -v "check-reboot-hostname.sh"; echo "* * * * * $CRON_CMD > /dev/null 2>&1"; echo "@reboot bash $CRON_REBOOT_SCRIPT") | crontab -
 echo -e "${GREEN}    - Đã thêm Cronjob tự động duyệt thiết bị mỗi phút.${NC}"
+echo -e "${GREEN}    - Đã thêm Cronjob kiểm tra cấu hình Domain khi tự khởi động lại.${NC}"
 
 echo -e "${BLUE}================================================${NC}"
-echo -e "${GREEN}      CÀI ĐẶT HOÀN TẤT! HÃY CHẠY LỆNH SAU:      ${NC}"
-echo -e "${YELLOW}            source ~/.bashrc                    ${NC}"
-echo -e "${YELLOW}            ocm                                 ${NC}"
+echo -e "${GREEN}             CÀI ĐẶT HOÀN TẤT!                 ${NC}"
 echo -e "${BLUE}================================================${NC}"

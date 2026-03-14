@@ -8,19 +8,27 @@ NC='\033[0m'
 echo -e "${YELLOW}>>> QUẢN LÝ DOMAIN & SSL (NGINX PROXY) <<<${NC}"
 echo -e "${BLUE}------------------------------------------------${NC}"
 
-# 1. Nhập thông tin
-echo -n "Nhập domain mới (vd: ai.example.com): "
-read domain
+# 1. Nhập thông tin (Hỗ trợ tham số dòng lệnh)
+if [ -n "$1" ]; then
+    domain="$1"
+    port="${2:-18789}"
+    AUTO_MODE=1
+    echo -e "${YELLOW}Chạy tự động với domain: $domain (Port: $port)${NC}"
+else
+    AUTO_MODE=0
+    echo -n "Nhập domain mới (vd: ai.example.com): "
+    read domain
 
-if [[ -z "$domain" ]]; then
-    echo -e "${RED}Lỗi: Domain không được để trống!${NC}"
-    sleep 2; exit 1
+    if [[ -z "$domain" ]]; then
+        echo -e "${RED}Lỗi: Domain không được để trống!${NC}"
+        sleep 2; exit 1
+    fi
+
+    # Nhập Port OpenClaw (Mặc định thường là 18789)
+    echo -n "Nhập Port của OpenClaw (Mặc định: 18789): "
+    read port
+    port=${port:-18789}
 fi
-
-# Nhập Port OpenClaw (Mặc định thường là 18789)
-echo -n "Nhập Port của OpenClaw (Mặc định: 18789): "
-read port
-port=${port:-18789}
 
 # 2. Check Valid Domain (Sơ bộ)
 if [[ ! $domain =~ ^[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$ ]]; then
@@ -74,4 +82,6 @@ else
 fi
 
 echo -e "${BLUE}------------------------------------------------${NC}"
-read -p "Nhấn Enter để quay lại menu..."
+if [ "$AUTO_MODE" -ne 1 ]; then
+    read -p "Nhấn Enter để quay lại menu..."
+fi
