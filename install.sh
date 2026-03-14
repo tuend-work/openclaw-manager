@@ -19,7 +19,7 @@ echo -e "${YELLOW}       BẮT ĐẦU CÀI ĐẶT OPENCLAW MANAGER         ${NC}
 echo -e "${BLUE}================================================${NC}"
 
 # 1. Phát hiện hệ điều hành và Cấu hình tường lửa
-echo -e "${YELLOW}[1/6] Phát hiện hệ điều hành và mở cổng (Firewall)...${NC}"
+echo -e "${YELLOW}[1/7] Phát hiện hệ điều hành và mở cổng (Firewall)...${NC}"
 
 if [ -f /etc/os-release ]; then
     . /etc/os-release
@@ -52,32 +52,29 @@ open_ports
 
 # 2. Tự động nhận diện thư mục hiện tại
 MANAGER_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
-echo -e "${YELLOW}[2/6] Thư mục quản lý: $MANAGER_DIR...${NC}"
+echo -e "${YELLOW}[2/7] Thư mục quản lý: $MANAGER_DIR...${NC}"
 
 # 3. Cấp quyền thực thi cho các file .sh
-echo -e "${YELLOW}[3/6] Thiết lập quyền thực thi cho các script...${NC}"
+echo -e "${YELLOW}[3/7] Thiết lập quyền thực thi cho các script...${NC}"
 chmod +x "$MANAGER_DIR"/*.sh 2>/dev/null
 
 # 4. Cấu hình phím tắt 'ocm' (Vĩnh viễn) và SSH Welcome
-echo -e "${YELLOW}[4/6] Cấu hình lệnh 'ocm' hệ thống và SSH Welcome...${NC}"
+echo -e "${YELLOW}[4/7] Cấu hình 'ocm' ${NC}"
 
 # Tạo symlink trong /usr/local/bin để lệnh ocm có thể chạy ở mọi nơi, mọi lúc
 ln -sf "$MANAGER_DIR/menu.sh" /usr/local/bin/ocm
 chmod +x /usr/local/bin/ocm
-echo -e "${GREEN}    - Đã tạo lệnh hệ thống 'ocm' tại /usr/local/bin/ocm${NC}"
 
 # Vẫn giữ alias trong .bashrc để dự phòng
 sed -i '/alias ocm=/d' ~/.bashrc
-echo "alias ocm='ocm'" >> ~/.bashrc
 
 # Xóa lệnh cũ nếu có và thêm lệnh tự động chạy menu khi login
 sed -i '/wellcome.sh/d' ~/.bashrc
 sed -i '/menu.sh/d' ~/.bashrc
 echo "if [ -f \"$MANAGER_DIR/menu.sh\" ]; then bash \"$MANAGER_DIR/menu.sh\"; fi" >> ~/.bashrc
-echo -e "${GREEN}    - Đã thiết lập tự động chạy menu khi login${NC}"
 
 # 5. Kiểm tra các gói phụ thuộc hệ thống theo OS
-echo -e "${YELLOW}[5/6] Cài đặt gói phụ thuộc cho hệ điều hành $OS...${NC}"
+echo -e "${YELLOW}[5/7] Cài đặt gói phụ thuộc cho hệ điều hành $OS...${NC}"
 
 if [[ "$OS" == "ubuntu" || "$OS" == "debian" ]]; then
     apt update -y > /dev/null 2>&1
@@ -90,7 +87,7 @@ else
 fi
 
 # 6. Kiểm tra và cài đặt OpenClaw
-echo -e "${YELLOW}[6/6] Kiểm tra OpenClaw Core...${NC}"
+echo -e "${YELLOW}[6/7] Kiểm tra OpenClaw Core...${NC}"
 
 
 # Kiểm tra Node.js (Yêu cầu Node 22+)
@@ -123,7 +120,7 @@ else
 fi
 
 # 7. Thiết lập Cronjob tự động Approve thiết bị
-echo -e "${YELLOW}[7/7] Thiết lập Cronjob tự động Approve thiết bị (1 phút/lần)...${NC}"
+echo -e "${YELLOW}[7/7] Thiết lập Cronjob ${NC}"
 
 CRON_CMD="/usr/bin/openclaw devices approve --latest"
 
