@@ -137,16 +137,21 @@ EOF
 }
 
 # Chạy đa luồng tất cả các model
+wait_pids=()
 for i in "${!MODEL_ARRAY[@]}"; do
     test_model "${MODEL_ARRAY[$i]}" "$TMP_DIR/res_${i}" &
+    wait_pids+=($!)
 done
 
-# Thanh tiến trình giả lập
+# Thanh tiến trình (chờ đến khi các process hoàn tất)
 echo -n "   ➜ Đang đợi hệ thống phản hồi: ["
-for ((i=0; i<$((TIMEOUT * 2)); i++)); do
-    echo -n "●"
-    sleep 0.5
+for pid in "${wait_pids[@]}"; do
+    while kill -0 $pid 2>/dev/null; do
+        echo -n "●"
+        sleep 0.5
+    done
 done
+wait # Đảm bảo mọi luồng con đã đóng, file đã ghi xong hoàn toàn
 echo -e "] ${GREEN}Hoàn tất!${NC}"
 
 # 4. Gom kết quả
