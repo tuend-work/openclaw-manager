@@ -95,65 +95,78 @@ execute_action() {
             ;;
         3) # GET FREE MODEL
             echo -e "${YELLOW}Đang thực hiện quy trình tối ưu AI Miễn phí...${NC}"
-            echo -e "${CYAN}1. Quét và thu thập danh sách Model miễn phí...${NC}"
-            openclaw models scan > /dev/null 2>&1
             
-            # Lấy danh sách ID các model free (thường là từ OpenRouter)
+            echo -e "${CYAN}1. Quét danh sách AI Model từ các nhà cung cấp...${NC}"
+            # Show output but filter it to be more readable
+            openclaw models scan | grep -E "Scanning|Found|Finished" | sed 's/^/  / '
+            
+            # Get list of free models
             mapfile -t free_models < <(openclaw models list | grep -i "free" | awk '{print $2}' | sort -u)
+            total_free=${#free_models[@]}
             
-            if [ ${#free_models[@]} -eq 0 ]; then
+            if [ $total_free -eq 0 ]; then
                 echo -e "${RED}Không tìm thấy Model miễn phí nào. Cài đặt mặc định openrouter/auto...${NC}"
                 openclaw models set "openrouter/auto"
             else
-                echo -e "${CYAN}Tìm thấy ${#free_models[@]} models. Đang kiểm tra tốc độ phản hồi...${NC}"
-                echo -e "${GRAY}(Vui lòng chờ, quá trình này có thể mất 1-2 phút)${NC}"
+                echo -e "\n${CYAN}2. Tìm thấy ${total_free} Model miễn phí. Bắt đầu kiểm tra tốc độ...${NC}"
+                echo -e "${GRAY}Mỗi model sẽ được test tối đa 10 giây. Vui lòng giữ kết nối.${NC}\n"
                 
                 fastest_model=""
                 min_time=9999
+                count=0
                 
-                # Clear old fallbacks to start fresh
+                # Clear old fallbacks
+                echo -e "${GRAY}  ➜ Đang xóa danh sách dự phòng cũ...${NC}"
                 openclaw models fallbacks clear > /dev/null 2>&1
                 
                 for m in "${free_models[@]}"; do
-                    echo -n -e "  ➜ Trình mẫu: ${BLUE}$m${NC} ... "
+                    count=$((count + 1))
+                    echo -n -e "  [${count}/${total_free}] Đang thử: ${BLUE}${m:0:40}${NC} "
+                    [ ${#m} -gt 40 ] && echo -n "..."
+                    echo -n -e " "
                     
                     # Benchmark latency
                     start_t=$(date +%s%N)
-                    # Use a very short timeout and minimal prompt
-                    timeout 15s openclaw agent ask "ok" --model "$m" --plain > /dev/null 2>&1
+                    # Use a shorter 10s timeout for better UX
+                    timeout 10s openclaw agent ask "hi" --model "$m" --plain > /dev/null 2>&1
                     res=$?
                     end_t=$(date +%s%N)
                     
                     if [ $res -eq 0 ]; then
                         delta=$(( (end_t - start_t) / 1000000 )) # ms
-                        echo -e "${GREEN}${delta}ms${NC}"
+                        echo -e "➔ ${GREEN}${delta}ms${NC}"
                         
                         if [ $delta -lt $min_time ]; then
                             min_time=$delta
                             fastest_model=$m
                         fi
-                        
-                        # Add to fallbacks if it's not the fastest later (we'll do this after finding the fastest)
                     else
-                        echo -e "${RED}Timeout/Error${NC}"
+                        echo -e "➔ ${RED}Thất bại/Lỗi${NC}"
                     fi
                 done
                 
                 if [ -n "$fastest_model" ]; then
-                    echo -e "\n${MAGENTA}${BOLD}KẾT QUẢ:${NC}"
-                    echo -e "🥇 Model nhanh nhất: ${GREEN}$fastest_model${NC} (${min_time}ms)"
+                    echo -e "\n${MAGENTA}${BOLD}┌──────────────────────────────────────────────┐${NC}"
+                    echo -e "${MAGENTA}${BOLD}│${NC}  ${BOLD}${WHITE}KẾT QUẢ TỐI ƯU HÓA HOÀN TẤT${NC}               ${MAGENTA}${BOLD}│${NC}"
+                    echo -e "${MAGENTA}${BOLD}└──────────────────────────────────────────────┘${NC}"
+                    echo -e " 🥇 ${BOLD}Nhanh nhất:${NC} ${GREEN}$fastest_model${NC} (${min_time}ms)"
                     
-                    echo -e "${CYAN}Đang thiết lập Model chính và danh sách dự phòng...${NC}"
-                    openclaw models set "$fastest_model"
+                    echo -e "\n${CYAN}3. Đang cấu hình hệ thống...${NC}"
+                    echo -e "  ➜ Đặt làm Model chính... ${GREEN}OK${NC}"
+                    openclaw models set "$fastest_model" > /dev/null 2>&1
                     
+                    echo -e "  ➜ Nạp các model còn lại vào danh sách dự phòng...${NC}"
+                    fb_count=0
                     for m in "${free_models[@]}"; do
                         if [ "$m" != "$fastest_model" ]; then
                             openclaw models fallbacks add "$m" > /dev/null 2>&1
+                            fb_count=$((fb_count + 1))
                         fi
                     done
-                    echo -e "${GREEN}Đã cấu hình xong! Toàn bộ Model free đã được nạp vào hệ thống.${NC}"
+                    echo -e "  ➜ Đã nạp ${GREEN}${fb_count}${NC} model dự phòng. ${GREEN}Hoàn tất!${NC}"
                 else
-                    echo -e "${RED}Tất cả Model thử nghiệm đều thất bại. Hãy kiểm tra kết nối mạng/API Key.${NC}"
+                    echo -e "\n${RED}Tất cả Model thử nghiệm đều thất bại hoặc Timeout.${NC}"
+                    echo -e "${YELLOW}Gợi ý: Hãy kiểm tra Internet hoặc dùng lệnh 'OpenClaw Command > Health' để check.${NC}"
                 fi
             fi
             ;;
