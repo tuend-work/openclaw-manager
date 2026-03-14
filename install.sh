@@ -156,17 +156,26 @@ if ! command -v openclaw &> /dev/null; then
         # Đảm bảo các user services (như OpenClaw daemon) tiếp tục chạy sau khi SSH logout
         echo -e "${YELLOW}    - Thiết lập quyền chạy ngầm (linger) cho root...${NC}"
         sudo loginctl enable-linger root > /dev/null 2>&1
-        echo -e "${YELLOW}    - Đang khởi tạo OpenClaw daemon...${NC}"
-        openclaw onboard --install-daemon --no-interactive > /dev/null 2>&1
+        echo -e "${YELLOW}    - Đang thiết lập OpenClaw Gateway Service...${NC}"
+        # Cài đặt Gateway Service
+        openclaw gateway install > /dev/null 2>&1
+        openclaw gateway start > /dev/null 2>&1
+        # Chạy khởi tạo cơ bản
+        openclaw onboard --no-interactive > /dev/null 2>&1
     else
         echo -e "${RED}    - Cài đặt OpenClaw thất bại. Vui lòng kiểm tra lại thủ công.${NC}"
     fi
 else
     echo -e "${GREEN}    - OpenClaw đã được cài đặt.${NC}"
+    echo -e "${YELLOW}    - Đang thiết lập OpenClaw Gateway Service...${NC}"
+    # Đảm bảo service được cài và chạy nếu đã có openclaw
+    openclaw gateway install > /dev/null 2>&1 || true
+    openclaw gateway start > /dev/null 2>&1 || true
 fi
 
 # Kích hoạt tính năng Auto-Completion (Bash) cho OpenClaw
 echo -e "${YELLOW}    - Bật tính năng gợi ý lệnh (Bash Completion) cho OpenClaw...${NC}"
+openclaw completion --write-state > /dev/null 2>&1
 openclaw completion --shell bash --install > /dev/null 2>&1
 # Sourcing profile cho phiên làm việc hiện tại luôn
 source ~/.bashrc > /dev/null 2>&1 || true
