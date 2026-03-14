@@ -35,6 +35,7 @@ options=(
     "Kiểm tra Port 18789 (Check Port Conflict)"
     "Cập nhật Script OCM (Update Manager)"
     "Bật/Tắt Auto-Approve Device (Cronjob)"
+    "Gỡ cài đặt OpenClaw (Uninstall)"
     "Quay lại Menu chính"
 )
 
@@ -56,6 +57,7 @@ commands=(
     "lsof -i :18789"
     "bash \"$MANAGER_DIR/update_script.sh\""
     "toggle_cron"
+    "openclaw uninstall --all --yes --non-interactive"
     ""
 )
 
@@ -69,13 +71,13 @@ show_commands() {
     echo -e "${CYAN}┌──────────────────────────────────────────────┐${NC}"
     echo -e "${CYAN}│${NC}       ${BOLD}${WHITE}LỆNH OPENCLAW THƯỜNG DÙNG${NC}          ${CYAN}│${NC}"
     echo -e "${CYAN}└──────────────────────────────────────────────┘${NC}"
-    echo -e " ${BOLD}${YELLOW}Sử dụng [↑/↓] hoặc phím số [1-17]:${NC}"
+    echo -e " ${BOLD}${YELLOW}Sử dụng [↑/↓] hoặc phím số [1-9, 0]:${NC}"
     echo ""
 
+    local last_index=$((${#options[@]} - 1))
     for i in "${!options[@]}"; do
         display_num=$((i + 1))
-        # For sub-menus, 1-17 are commands, last one (18) is Back
-        [ $display_num -eq 18 ] && display_display="0" || display_display="$display_num"
+        [ $i -eq $last_index ] && display_display="0" || display_display="$display_num"
         
         # Colorize the description in parentheses
         item_text="${options[$i]}"
@@ -102,7 +104,8 @@ show_commands() {
 
 execute_cmd() {
     local index=$1
-    if [ $index -eq 17 ]; then exit 0; fi # Option 0: Back
+    local last_index=$((${#options[@]} - 1))
+    if [ $index -eq $last_index ]; then exit 0; fi # Option 0: Back
     
     echo -e "${CYAN}────────────────────────────────────────────────${NC}"
     tput cnorm
@@ -134,6 +137,31 @@ execute_cmd() {
                 echo -e "${GREEN}Đã BẬT tự động duyệt thiết bị (mỗi phút).${NC}"
             fi
             ;;
+        17) # Uninstall OpenClaw
+            echo -e "${RED}${BOLD}CẢNH BÁO: BẠN ĐANG CHỌN GỠ CÀI ĐẶT OPENCLAW${NC}"
+            echo -e "${YELLOW}Thao tác này sẽ xóa toàn bộ dịch vụ phụ trợ, môi trường, cấu hình và core CLI.${NC}"
+            echo -n "Bạn có chắc chắn muốn tiến hành? (y/N): "
+            read confirm
+            if [[ "$confirm" == [yY] || "$confirm" == [yY][eE][sS] ]]; then
+                echo -e "${CYAN}Đang thực thi lệnh gỡ cài đặt Core...${NC}"
+                openclaw uninstall --all --yes --non-interactive
+                
+                echo -e "${CYAN}Đang gỡ bỏ hoàn toàn CLI...${NC}"
+                if command -v npm &> /dev/null; then
+                    npm rm -g openclaw >/dev/null 2>&1
+                fi
+                if command -v pnpm &> /dev/null; then
+                    pnpm remove -g openclaw >/dev/null 2>&1
+                fi
+                if command -v bun &> /dev/null; then
+                    bun remove -g openclaw >/dev/null 2>&1
+                fi
+                
+                echo -e "${GREEN}Đã gỡ cài đặt sạch sẽ toàn bộ OpenClaw!${NC}"
+            else
+                echo -e "${YELLOW}Đã hủy xóa cài đặt.${NC}"
+            fi
+            ;;
     esac
     echo -e "${CYAN}────────────────────────────────────────────────${NC}"
     read -p "Nhấn Enter để tiếp tục..."
@@ -162,7 +190,7 @@ while true; do
             # Simplified: 1-9 direct, 0 for back.
             execute_cmd $((key - 1))
             ;;
-        0) execute_cmd 17 ;;
+        0) execute_cmd $((${#options[@]} - 1)) ;;
         "") execute_cmd $current ;;
     esac
 done
