@@ -177,6 +177,9 @@ WantedBy=default.target
 EOF
     # Reload systemd và khởi động service
     systemctl --user daemon-reload > /dev/null 2>&1
+    export XDG_RUNTIME_DIR=/run/user/$(id -u)
+    export DBUS_SESSION_BUS_ADDRESS=unix:path=$XDG_RUNTIME_DIR/bus
+    loginctl enable-linger root > /dev/null 2>&1        
     systemctl --user enable openclaw-gateway.service > /dev/null 2>&1
     systemctl --user restart openclaw-gateway.service > /dev/null 2>&1
 }
