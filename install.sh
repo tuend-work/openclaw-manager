@@ -157,11 +157,24 @@ if ! command -v openclaw &> /dev/null; then
         echo -e "${YELLOW}    - Thiết lập quyền chạy ngầm (linger) cho root...${NC}"
         sudo loginctl enable-linger root > /dev/null 2>&1
         echo -e "${YELLOW}    - Đang thiết lập OpenClaw Gateway Service...${NC}"
+
+        #code copy file /openclaw-templates/openclaw.env.example thành /openclaw.env
+        cp /openclaw-templates/openclaw.env.example /root/.openclaw/.env
+
+        #code replace value từ your_domain_name thành hostname trong file /root/.openclaw/.env
+        sed -i 's/your_domain_name/$(hostname)/g' /root/.openclaw/.env
+        
+        #replace value từ your_secure_random_token_here thành giá trị ngẫu nhiên
+        sed -i 's/your_secure_random_token_here/$(openssl rand -hex 32)/g' /root/.openclaw/.env
+
+        #code copy file openclaw.json vào /root/.openclaw/
+        cp /openclaw-templates/openclaw.json /root/.openclaw/
+
+        # Chạy khởi tạo cơ bản
+        openclaw onboard --no-interactive > /dev/null 2>&1
         # Cài đặt Gateway Service
         openclaw gateway install > /dev/null 2>&1
         openclaw gateway start > /dev/null 2>&1
-        # Chạy khởi tạo cơ bản
-        openclaw onboard --no-interactive > /dev/null 2>&1
     else
         echo -e "${RED}    - Cài đặt OpenClaw thất bại. Vui lòng kiểm tra lại thủ công.${NC}"
     fi
