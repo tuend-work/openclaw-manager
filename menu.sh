@@ -39,6 +39,7 @@ fi
 [ -z "$DOMAIN_NAME" ] && DOMAIN_NAME=$(hostname)
 
 options=(
+    "OpenClaw Command (Lệnh điều khiển nhanh)"
     "Domain & SSL (Quản lý Tên miền & SSL)"
     "AI Agents (Quản lý AI Agents)"
     "Channels (Quản lý Kênh Chat)"
@@ -68,12 +69,12 @@ show_menu() {
     echo -e " ${WHITE}●${NC} Dashboard: ${CYAN}https://${DOMAIN_NAME}/#token=${GATEWAY_TOKEN}${NC}"
     echo -e " ${WHITE}●${NC} OC: ${MAGENTA}${OPENCLAW_VER}${NC} | OCM: ${MAGENTA}v2.1.0${NC} | IP: ${BLUE}${IP_ADDR}${NC}"
     echo -e "${CYAN}------------------------------------------------${NC}"
-    echo -e " ${BOLD}${YELLOW}Sử dụng [↑/↓] hoặc phím số [1-8]:${NC}"
+    echo -e " ${BOLD}${YELLOW}Sử dụng [↑/↓] hoặc phím số [1-9]:${NC}"
     echo ""
 
     for i in "${!options[@]}"; do
         display_num=$((i + 1))
-        [ $display_num -eq 9 ] && display_num=0
+        [ $display_num -eq 10 ] && display_num=0
         
         # Colorize the Vietnamese description in parentheses
         item_text="${options[$i]}"
@@ -100,15 +101,16 @@ execute_module() {
     local index=$1
     tput cnorm
     case $index in
-        0) bash "$MANAGER_DIR/manage_domain.sh" ;;
-        1) bash "$MANAGER_DIR/manage_ai.sh" ;;
-        2) bash "$MANAGER_DIR/manage_channels.sh" ;;
-        3) bash "$MANAGER_DIR/manage_logs.sh" ;;
-        4) bash "$MANAGER_DIR/manage_services.sh" ;;
-        5) bash "$MANAGER_DIR/manage_commands.sh" ;;
-        6) bash "$MANAGER_DIR/manage_settings.sh" ;;
-        7) bash "$MANAGER_DIR/manage_backup.sh" ;;
-        8) exit 0 ;;
+        0) bash "$MANAGER_DIR/manage_openclaw.sh" ;;
+        1) bash "$MANAGER_DIR/manage_domain.sh" ;;
+        2) bash "$MANAGER_DIR/manage_ai.sh" ;;
+        3) bash "$MANAGER_DIR/manage_channels.sh" ;;
+        4) bash "$MANAGER_DIR/manage_logs.sh" ;;
+        5) bash "$MANAGER_DIR/manage_services.sh" ;;
+        6) bash "$MANAGER_DIR/manage_commands.sh" ;;
+        7) bash "$MANAGER_DIR/manage_settings.sh" ;;
+        8) bash "$MANAGER_DIR/manage_backup.sh" ;;
+        9) exit 0 ;;
     esac
     tput civis
     clear
@@ -152,13 +154,13 @@ while true; do
                         ;;
                 esac
                 ;;
-            [1-8]) # Number keys 1-8
+            [1-9]) # Number keys 1-9
                 execute_module $((key - 1))
                 show_menu
                 gather_system_stats
                 ;;
             0) # Number key 0 (Exit)
-                execute_module 8
+                execute_module 9
                 ;;
             "") # Enter key
                 execute_module $current
