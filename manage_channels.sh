@@ -205,5 +205,4 @@ while true; do
                 esac
                 ;;
         esac
-    fi
 done
