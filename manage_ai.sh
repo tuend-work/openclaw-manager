@@ -32,6 +32,13 @@ restart_gateway() {
     sleep 1
 }
 
+# Added Pause function
+pause() {
+    echo -e "\n${YELLOW}────────────────────────────────────────────────${NC}"
+    echo -e "${WHITE}Nhấn Enter để quay lại menu...${NC}"
+    read
+}
+
 show_bindings_menu() {
     while true; do
         clear
@@ -47,7 +54,8 @@ show_bindings_menu() {
         echo -e "  ${WHITE}2.${NC} Gỡ bỏ kết nối (${CYAN}agents unbind${NC})"
         echo -e "  ${WHITE}0.${NC} Quay lại"
         echo -e "${CYAN}────────────────────────────────────────────────${NC}"
-        read -p " Nhập lựa chọn: " b_choice
+        echo -n " Nhập lựa chọn: "
+        read b_choice
 
         case $b_choice in
             1)
@@ -61,6 +69,7 @@ show_bindings_menu() {
                     openclaw agents bind --agent "$b_agent" --channel "$b_chan" --account "$b_acc"
                     restart_gateway
                 fi
+                pause
                 ;;
             2)
                 echo -ne "${YELLOW}➤ Nhập ID Agent cần gỡ kết nối:${NC} "; read u_agent
@@ -70,10 +79,10 @@ show_bindings_menu() {
                     openclaw agents unbind --agent "$u_agent" --channel "$u_chan" --account "$u_acc"
                     restart_gateway
                 fi
+                pause
                 ;;
             0) return ;;
         esac
-        [ "$b_choice" != "0" ] && { echo -e "\n${YELLOW}Nhấn Enter để tiếp tục...${NC}"; read; }
     done
 }
 
@@ -85,6 +94,31 @@ options=(
     "Quay lại Menu chính"
 )
 current=0
+
+execute_ai_action() {
+    local index=$1
+    tput cnorm
+    case $index in
+        0) echo -e "${CYAN}Danh sách các Agents đang chạy:${NC}"; openclaw agents list ;;
+        1) 
+            echo -ne "${YELLOW}➤ Nhập ID cho Agent mới (VD: agent2):${NC} "; read a_id
+            echo -ne "${YELLOW}➤ Nhập tên hiển thị (VD: My Second AI):${NC} "; read a_name
+            if [ -n "$a_id" ]; then
+                openclaw agents add --id "$a_id" --name "$a_name"
+                restart_gateway
+            fi ;;
+        2) 
+            echo -e "${YELLOW}Danh sách Agents:${NC}"; openclaw agents list
+            echo -ne "${YELLOW}➤ Nhập ID Agent cần xóa:${NC} "; read d_id
+            if [ -n "$d_id" ]; then
+                openclaw agents remove "$d_id"
+                restart_gateway
+            fi ;;
+        3) show_bindings_menu; return ;;
+        4) exit 0 ;;
+    esac
+    [ "$index" -ne 3 ] && pause
+}
 
 while true; do
     clear
@@ -117,33 +151,9 @@ while true; do
                     "[A") current=$(( (current - 1 + ${#options[@]}) % ${#options[@]} )) ;;
                     "[B") current=$(( (current + 1) % ${#options[@]} )) ;;
                 esac ;;
-            1) tput cnorm; echo -e "${CYAN}Danh sách các Agents đang chạy:${NC}"; openclaw agents list ;;
-            2) 
-                tput cnorm
-                echo -ne "${YELLOW}➤ Nhập ID cho Agent mới (VD: agent2):${NC} "; read a_id
-                echo -ne "${YELLOW}➤ Nhập tên hiển thị (VD: My Second AI):${NC} "; read a_name
-                if [ -n "$a_id" ]; then
-                    openclaw agents add --id "$a_id" --name "$a_name"
-                    restart_gateway
-                fi ;;
-            3) 
-                tput cnorm; echo -e "${YELLOW}Danh sách Agents:${NC}"; openclaw agents list
-                echo -ne "${YELLOW}➤ Nhập ID Agent cần xóa:${NC} "; read d_id
-                if [ -n "$d_id" ]; then
-                    openclaw agents remove "$d_id"
-                    restart_gateway
-                fi ;;
-            4) show_bindings_menu ;;
-            0|5) exit 0 ;;
-            "") # Enter
-                case $current in
-                    0) tput cnorm; openclaw agents list ;;
-                    1) tput cnorm; read -p "Nhập ID: " a_id; openclaw agents add --id "$a_id"; restart_gateway ;;
-                    2) tput cnorm; read -p "Nhập ID xóa: " d_id; openclaw agents remove "$d_id"; restart_gateway ;;
-                    3) show_bindings_menu ;;
-                    4) exit 0 ;;
-                esac ;;
+            [1-4]) execute_ai_action $((key - 1)) ;;
+            0) exit 0 ;;
+            "") execute_ai_action $current ;;
         esac
-        [ "$key" != "" ] && [ "$key" != "$'\x1b'" ] && [ "$current" -ne 3 ] && { echo -e "\n${YELLOW}Nhấn Enter để tiếp tục...${NC}"; read; }
     fi
 done
