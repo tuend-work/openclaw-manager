@@ -183,9 +183,34 @@ execute_action() {
                 restart_gateway
             fi
             ;;
-        8) # Auth
-            echo -e "${YELLOW}Quản lý xác thực Model (Auth):${NC}"
-            openclaw models auth
+        8) # Auth Profiles Management
+            while true; do
+                clear
+                echo -e "${CYAN}┌──────────────────────────────────────────────┐${NC}"
+                echo -e "${CYAN}│${NC}        ${BOLD}${WHITE}QUẢN LÝ XÁC THỰC MODEL (AUTH)${NC}         ${CYAN}│${NC}"
+                echo -e "${CYAN}└──────────────────────────────────────────────┘${NC}"
+                echo -e "  ${WHITE}1.${NC} Login (Chạy flow đăng nhập OAuth/API Key)"
+                echo -e "  ${WHITE}2.${NC} Add Token (Thêm Token thủ công - Hỗ trợ dán)"
+                echo -e "  ${WHITE}3.${NC} Paste Token (Dán token trực tiếp vào cấu hình)"
+                echo -e "  ${WHITE}4.${NC} Setup Token (Chạy CLI tạo/đồng bộ token)"
+                echo -e "  ${WHITE}5.${NC} Login GitHub Copilot (Device Flow)"
+                echo -e "  ${WHITE}0.${NC} Quay lại"
+                echo -e "${CYAN}────────────────────────────────────────────────${NC}"
+                echo -n -e "\n${YELLOW}Chọn tác vụ [1-5, 0]: ${NC}"
+                read auth_opt
+
+                case $auth_opt in
+                    1) echo -e "${CYAN}Chạy: openclaw models auth login...${NC}"; openclaw models auth login ;;
+                    2) echo -e "${CYAN}Chạy: openclaw models auth add...${NC}"; openclaw models auth add ;;
+                    3) echo -e "${CYAN}Chạy: openclaw models auth paste-token...${NC}"; openclaw models auth paste-token ;;
+                    4) echo -e "${CYAN}Chạy: openclaw models auth setup-token...${NC}"; openclaw models auth setup-token ;;
+                    5) echo -e "${CYAN}Chạy: openclaw models auth login-github-copilot...${NC}"; openclaw models auth login-github-copilot ;;
+                    0) break ;;
+                    *) echo -e "${RED}Lựa chọn không hợp lệ!${NC}"; sleep 1 ;;
+                esac
+                echo ""
+                read -p "Nhấn Enter để tiếp tục..."
+            done
             ;;
         9) # Delete Models
             echo -e "${YELLOW}Đang tải danh sách Models...${NC}"
