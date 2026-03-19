@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # =========================================================
-# OPENCLAW MANAGER - CHANNELS MANAGEMENT (NAVIGABLE)
+# OPENCLAW MANAGER - CHANNELS V2 (ADVANCED)
 # =========================================================
 
 REAL_PATH=$(readlink -f "${BASH_SOURCE[0]}")
@@ -78,7 +78,7 @@ show_telegram_menu() {
         echo ""
         echo -e "${CYAN}────────────────────────────────────────────────${NC}"
 
-        tput civis # Hide cursor
+        tput civis
         if read -rsn1 -t 5 key; then
             case "$key" in
                 $'\x1b')
@@ -86,44 +86,74 @@ show_telegram_menu() {
                     case "$next_key" in
                         "[A") current=$(( (current - 1 + ${#options[@]}) % ${#options[@]} )) ;;
                         "[B") current=$(( (current + 1) % ${#options[@]} )) ;;
-                    esac
-                    ;;
+                    esac ;;
                 1) execute_tg_action 0 ;;
                 2) execute_tg_action 1 ;;
                 0|3) return ;;
-                "") # Enter
-                    execute_tg_action $current
-                    [ $current -eq 2 ] && return
-                    ;;
+                "") [ $current -eq 2 ] && return; execute_tg_action $current ;;
             esac
         fi
     done
 }
 
 execute_tg_action() {
-    tput cnorm # Show cursor
+    tput cnorm
     case $1 in
         0)
-            echo -ne "\n${YELLOW}➤ Nhập API Token mới (hoặc Enter để giữ nguyên):${NC} "
-            read new_token
+            echo -ne "\n${YELLOW}➤ Nhập API Token mới:${NC} "; read new_token
             if [ -n "$new_token" ]; then
                 sed -i "s|^TELEGRAM_BOT_TOKEN=.*|TELEGRAM_BOT_TOKEN=$new_token|" "$ENV_FILE"
                 echo -e "${GREEN}✅ Đã cập nhật Token.${NC}"; restart_gateway
-            fi
-            ;;
+            fi ;;
         1)
             echo -e "\n${CYAN}Gợi ý: Nhiều ID cách nhau bởi dấu phẩy.${NC}"
-            echo -ne "${YELLOW}➤ Nhập danh sách IDs mới (hoặc Enter để giữ nguyên):${NC} "
-            read new_ids
+            echo -ne "${YELLOW}➤ Nhập danh sách IDs mới:${NC} "; read new_ids
             if [ -n "$new_ids" ]; then
                 sed -i "s|^TELEGRAM_ALLOW_USER_IDS_VALUE=.*|TELEGRAM_ALLOW_USER_IDS_VALUE=$new_ids|" "$ENV_FILE"
                 echo -e "${GREEN}✅ Đã cập nhật danh sách IDs.${NC}"; restart_gateway
-            fi
-            ;;
+            fi ;;
     esac
+    echo -e "\n${YELLOW}Nhấn Enter để quay lại...${NC}"; read
 }
 
-# Main Loop for manage_channels
+# Main Logic for Actions
+execute_main_action() {
+    local index=$1
+    tput cnorm
+    case $index in
+        0) show_telegram_menu; return ;;
+        1) 
+            echo -e "${CYAN}Kết nối Bot Telegram mới:${NC}"
+            echo -ne "${YELLOW}➤ Nhập Bot Token mới:${NC} "; read bot_token
+            echo -ne "${YELLOW}➤ Nhập Account ID (VD: bot2):${NC} "; read bot_id
+            if [ -n "$bot_token" ]; then
+                openclaw channels add --channel telegram --token "$bot_token" --account "${bot_id:-default}"
+                restart_gateway
+            fi ;;
+        2) echo -e "${CYAN}Danh sách tài khoản đang chạy:${NC}"; openclaw channels list ;;
+        3) 
+            echo -e "${YELLOW}Danh sách tài khoản:${NC}"; openclaw channels list
+            echo -ne "${YELLOW}➤ Nhập Channel (telegram/...):${NC} "; read d_chan
+            echo -ne "${YELLOW}➤ Nhập Account ID cần gỡ:${NC} "; read d_acc
+            if [ -n "$d_acc" ]; then
+                openclaw channels remove --channel "$d_chan" --account "$d_acc" --delete
+                restart_gateway
+            fi ;;
+        4) echo -e "${CYAN}Kiểm tra trạng thái kết nối...${NC}"; openclaw channels status ;;
+        5) echo -e "${CYAN}Kiểm tra khả năng phản hồi (Capabilities)...${NC}"; openclaw channels capabilities ;;
+        6) 
+            echo -n "Chọn kênh: "; read ch_name
+            echo -n "Tên (VD: #general): "; read r_name
+            if [ -n "$ch_name" ]; then openclaw channels resolve --channel "$ch_name" "$r_name"; fi ;;
+        7) echo -e "${CYAN}Xem nhật ký hoạt động kênh...${NC}"; openclaw channels logs --channel all ;;
+        8) exit 0 ;;
+    esac
+    echo -e "\n${YELLOW}────────────────────────────────────────────────${NC}"
+    echo -e "${WHITE}Nhấn Enter để quay lại menu...${NC}"
+    read
+}
+
+# Main Loop
 main_options=(
     "Cấu hình nhanh Telegram (Quick Config)"
     "KẾT NỐI TÀI KHOẢN BOT MỚI (Connect New Account)"
@@ -170,39 +200,9 @@ while true; do
                     "[A") main_current=$(( (main_current - 1 + ${#main_options[@]}) % ${#main_options[@]} )) ;;
                     "[B") main_current=$(( (main_current + 1) % ${#main_options[@]} )) ;;
                 esac ;;
-            1) show_telegram_menu ;; # Renamed from show_telegram_quick_config to show_telegram_menu
-            2) 
-                tput cnorm
-                echo -e "${CYAN}Kết nối Bot Telegram mới:${NC}"
-                echo -ne "${YELLOW}➤ Nhập Bot Token mới:${NC} "; read bot_token
-                echo -ne "${YELLOW}➤ Nhập Account ID (VD: bot2):${NC} "; read bot_id
-                if [ -n "$bot_token" ]; then
-                    openclaw channels add --channel telegram --token "$bot_token" --account "${bot_id:-default}"
-                    restart_gateway
-                fi ;;
-            3) tput cnorm; echo -e "${CYAN}Danh sách tài khoản đang chạy:${NC}"; openclaw channels list ;;
-            4) 
-                tput cnorm; echo -e "${YELLOW}Danh sách tài khoản:${NC}"; openclaw channels list
-                echo -ne "${YELLOW}➤ Nhập Channel (telegram/...):${NC} "; read d_chan
-                echo -ne "${YELLOW}➤ Nhập Account ID cần gỡ:${NC} "; read d_acc
-                if [ -n "$d_acc" ]; then
-                    openclaw channels remove --channel "$d_chan" --account "$d_acc" --delete
-                    restart_gateway
-                fi ;;
-            5) tput cnorm; echo -e "${CYAN}Kiểm tra trạng thái kết nối...${NC}"; openclaw channels status ;;
-            6) tput cnorm; echo -e "${CYAN}Kiểm tra khả năng phản hồi (Capabilities)...${NC}"; openclaw channels capabilities ;;
-            7) 
-                tput cnorm; echo -n "Chọn kênh: "; read ch_name
-                echo -n "Tên (VD: #general): "; read r_name
-                if [ -n "$ch_name" ]; then openclaw channels resolve --channel "$ch_name" "$r_name"; fi ;;
-            8) tput cnorm; echo -e "${CYAN}Xem nhật ký hoạt động kênh...${NC}"; openclaw channels logs --channel all ;;
-            0|9) exit 0 ;;
-            "") # Enter
-                case $main_current in
-                    0) show_telegram_menu ;;
-                    1) tput cnorm; read -p "Nhấn Enter để quay lại..." ;;
-                    2) exit 0 ;;
-                esac
-                ;;
+            [1-8]) execute_main_action $((key - 1)) ;;
+            0) exit 0 ;;
+            "") execute_main_action $main_current ;;
         esac
+    fi
 done
