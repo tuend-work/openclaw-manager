@@ -147,6 +147,8 @@ if [ -f "$ENV_FILE" ]; then
     if $UPDATE_REQUIRED; then
         echo -e "${YELLOW}⚡ Đang cập nhật model và khởi động lại dịch vụ...${NC}"
         openclaw config set channels.telegram.enabled true > /dev/null 2>&1
+        export XDG_RUNTIME_DIR="/run/user/$UID"
+        export DBUS_SESSION_BUS_ADDRESS="unix:path=${XDG_RUNTIME_DIR}/bus"
         openclaw gateway restart > /dev/null 2>&1
         openclaw channels status --probe  > /dev/null 2>&1
         echo -e "${GREEN}✅ Hoàn tất cấu hình onboarding!${NC}"
