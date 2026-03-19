@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # =========================================================
-# OPENCLAW MANAGER - CHANNELS MANAGEMENT (UI/UX SYNC)
+# OPENCLAW MANAGER - CHANNELS MANAGEMENT (NAVIGABLE)
 # =========================================================
 
 REAL_PATH=$(readlink -f "${BASH_SOURCE[0]}")
@@ -18,6 +18,7 @@ CYAN='\033[0;96m'
 WHITE='\033[0;97m'
 GRAY='\033[0;90m'
 BOLD='\033[1m'
+BG_CYAN='\033[46m'
 NC='\033[0m'
 
 # Export env for systemctl --user
@@ -46,7 +47,11 @@ get_env_val() {
     fi
 }
 
+# Sub-menu for Telegram
 show_telegram_menu() {
+    local options=("API Bot Token" "Allow User / Group IDs" "Back (Quay lại)")
+    local current=0
+
     while true; do
         BOT_TOKEN=$(get_env_val "TELEGRAM_BOT_TOKEN")
         USER_IDS=$(get_env_val "TELEGRAM_ALLOW_USER_IDS_VALUE")
@@ -58,42 +63,70 @@ show_telegram_menu() {
         echo -e " ${WHITE}●${NC} Bot Token: ${YELLOW}${BOT_TOKEN:-'Chưa thiết lập'}${NC}"
         echo -e " ${WHITE}●${NC} User IDs: ${YELLOW}${USER_IDS:-'Chưa thiết lập'}${NC}"
         echo -e "${CYAN}------------------------------------------------${NC}"
-        echo -e " ${BOLD}${YELLOW}Chọn hạng mục cần chỉnh sửa:${NC}"
+        echo -e " ${BOLD}${YELLOW}Sử dụng [↑/↓] hoặc phím số [1-3]:${NC}"
         echo ""
-        echo -e "  ${WHITE}1.${NC} Thay đổi API Bot Token"
-        echo -e "  ${WHITE}2.${NC} Cấu hình ID Người dùng / Nhóm (Allow IDs)"
-        echo -e "  ${WHITE}0.${NC} Quay lại"
+
+        for i in "${!options[@]}"; do
+            display_num=$((i + 1))
+            [ $display_num -eq 3 ] && display_num=0
+            if [ "$i" -eq "$current" ]; then
+                echo -e "  ${BG_CYAN}${BOLD}${WHITE} ➜ $display_num. ${options[$i]} ${NC}"
+            else
+                echo -e "     ${WHITE}$display_num. ${options[$i]}${NC}"
+            fi
+        done
         echo ""
         echo -e "${CYAN}────────────────────────────────────────────────${NC}"
-        read -p " Nhập lựa chọn: " tg_choice
 
-        case $tg_choice in
-            1)
-                echo -ne "\n${YELLOW}➤ Nhập API Token mới (hoặc Enter để giữ nguyên):${NC} "
-                read new_token
-                if [ -n "$new_token" ]; then
-                    sed -i "s|^TELEGRAM_BOT_TOKEN=.*|TELEGRAM_BOT_TOKEN=$new_token|" "$ENV_FILE"
-                    echo -e "${GREEN}✅ Đã cập nhật Token.${NC}"
-                    restart_gateway
-                fi
-                ;;
-            2)
-                echo -e "\n${CYAN}Gợi ý: Nhiều ID cách nhau bởi dấu phẩy.${NC}"
-                echo -ne "${YELLOW}➤ Nhập danh sách IDs mới (hoặc Enter để giữ nguyên):${NC} "
-                read new_ids
-                if [ -n "$new_ids" ]; then
-                    sed -i "s|^TELEGRAM_ALLOW_USER_IDS_VALUE=.*|TELEGRAM_ALLOW_USER_IDS_VALUE=$new_ids|" "$ENV_FILE"
-                    echo -e "${GREEN}✅ Đã cập nhật danh sách IDs.${NC}"
-                    restart_gateway
-                fi
-                ;;
-            0) return ;;
-            *) echo -e "${RED}Lựa chọn không hợp lệ!${NC}"; sleep 1 ;;
-        esac
+        tput civis # Hide cursor
+        if read -rsn1 -t 5 key; then
+            case "$key" in
+                $'\x1b')
+                    read -rsn2 -t 0.1 next_key
+                    case "$next_key" in
+                        "[A") current=$(( (current - 1 + ${#options[@]}) % ${#options[@]} )) ;;
+                        "[B") current=$(( (current + 1) % ${#options[@]} )) ;;
+                    esac
+                    ;;
+                1) execute_tg_action 0 ;;
+                2) execute_tg_action 1 ;;
+                0|3) return ;;
+                "") # Enter
+                    execute_tg_action $current
+                    [ $current -eq 2 ] && return
+                    ;;
+            esac
+        fi
     done
 }
 
+execute_tg_action() {
+    tput cnorm # Show cursor
+    case $1 in
+        0)
+            echo -ne "\n${YELLOW}➤ Nhập API Token mới (hoặc Enter để giữ nguyên):${NC} "
+            read new_token
+            if [ -n "$new_token" ]; then
+                sed -i "s|^TELEGRAM_BOT_TOKEN=.*|TELEGRAM_BOT_TOKEN=$new_token|" "$ENV_FILE"
+                echo -e "${GREEN}✅ Đã cập nhật Token.${NC}"; restart_gateway
+            fi
+            ;;
+        1)
+            echo -e "\n${CYAN}Gợi ý: Nhiều ID cách nhau bởi dấu phẩy.${NC}"
+            echo -ne "${YELLOW}➤ Nhập danh sách IDs mới (hoặc Enter để giữ nguyên):${NC} "
+            read new_ids
+            if [ -n "$new_ids" ]; then
+                sed -i "s|^TELEGRAM_ALLOW_USER_IDS_VALUE=.*|TELEGRAM_ALLOW_USER_IDS_VALUE=$new_ids|" "$ENV_FILE"
+                echo -e "${GREEN}✅ Đã cập nhật danh sách IDs.${NC}"; restart_gateway
+            fi
+            ;;
+    esac
+}
+
 # Main Loop for manage_channels
+main_options=("Telegram (Hỗ trợ cấu hình nhanh)" "Other Channels (Manual Setup)" "Quay lại Menu chính")
+main_current=0
+
 while true; do
     clear
     echo -e "${CYAN}┌──────────────────────────────────────────────┐${NC}"
@@ -101,32 +134,48 @@ while true; do
     echo -e "${CYAN}└──────────────────────────────────────────────┘${NC}"
     echo -e " ${WHITE}●${NC} Trạng thái OpenClaw: ${GREEN}Đang hoạt động${NC}"
     echo -e "${CYAN}------------------------------------------------${NC}"
-    echo -e "  ${WHITE}1.${NC} ${BOLD}Telegram${NC} (Hỗ trợ cấu hình nhanh)"
-    echo -e "  ${WHITE}2.${NC} ${GRAY}Other Channels (Manual Setup)${NC}"
-    echo -e "  ${WHITE}0.${NC} Quay lại Menu chính"
+    echo -e " ${BOLD}${YELLOW}Sử dụng [↑/↓] hoặc phím số [1-3]:${NC}"
+    echo ""
+
+    for i in "${!main_options[@]}"; do
+        display_num=$((i + 1))
+        [ $display_num -eq 3 ] && display_num=0
+        if [ "$i" -eq "$main_current" ]; then
+            echo -e "  ${BG_CYAN}${BOLD}${WHITE} ➜ $display_num. ${main_options[$i]} ${NC}"
+        else
+            echo -e "     ${WHITE}$display_num. ${main_options[$i]}${NC}"
+        fi
+    done
     echo ""
     echo -e "${CYAN}────────────────────────────────────────────────${NC}"
-    read -p " Nhập lựa chọn: " choice
 
-    case $choice in
-        1)
-            show_telegram_menu
-            ;;
-        2)
-            echo -e "\n${MAGENTA}------------------------------------------------${NC}"
-            echo -e "${YELLOW}💡 THÔNG BÁO:${NC}"
-            echo -e "OCM Script hiện chỉ hỗ trợ giao diện cấu hình nhanh"
-            echo -e "cho ${BOLD}Telegram${NC}. Các kênh khác (Discord, Slack, v.v.)"
-            echo -e "vui lòng setup thủ công trong file config."
-            echo -e "${MAGENTA}------------------------------------------------${NC}"
-            read -p "Nhấn Enter để quay lại..."
-            ;;
-        0)
-            exit 0
-            ;;
-        *)
-            echo -e "${RED}Lựa chọn không hợp lệ!${NC}"
-            sleep 1
-            ;;
-    esac
+    tput civis
+    if read -rsn1 -t 5 key; then
+        case "$key" in
+            $'\x1b')
+                read -rsn2 -t 0.1 next_key
+                case "$next_key" in
+                    "[A") main_current=$(( (main_current - 1 + ${#main_options[@]}) % ${#main_options[@]} )) ;;
+                    "[B") main_current=$(( (main_current + 1) % ${#main_options[@]} )) ;;
+                esac
+                ;;
+            1) show_telegram_menu ;;
+            2) 
+                tput cnorm
+                echo -e "\n${MAGENTA}------------------------------------------------${NC}"
+                echo -e "${YELLOW}💡 THÔNG BÁO:${NC}"
+                echo -e "OCM Script hiện chỉ hỗ trợ giao diện cấu hình nhanh"
+                echo -e "cho ${BOLD}Telegram${NC}. Các kênh khác vui lòng setup thủ công."
+                echo -e "${MAGENTA}------------------------------------------------${NC}"
+                read -p "Nhấn Enter để quay lại..." ;;
+            0|3) exit 0 ;;
+            "") # Enter
+                case $main_current in
+                    0) show_telegram_menu ;;
+                    1) tput cnorm; read -p "Nhấn Enter để quay lại..." ;;
+                    2) exit 0 ;;
+                esac
+                ;;
+        esac
+    fi
 done
