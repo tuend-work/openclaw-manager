@@ -33,10 +33,15 @@ chmod +x "$MANAGER_DIR"/cronjob/*.sh 2>/dev/null
 ln -sf "$MANAGER_DIR/menu.sh" /usr/local/bin/ocm
 chmod +x /usr/local/bin/ocm
 
-# 2. Đăng ký SSH Hook (boot.sh)
-echo -e "${YELLOW}[2/4] Đăng ký SSH Login Hook...${NC}"
+# 2. Đăng ký SSH Hook (Cấu hình XDG_RUNTIME & boot.sh)
+echo -e "${YELLOW}[2/4] Đăng ký SSH Login Hook & Env...${NC}"
+sed -i '/XDG_RUNTIME_DIR/d' ~/.bashrc
+sed -i '/DBUS_SESSION_BUS_ADDRESS/d' ~/.bashrc
 sed -i '/boot.sh/d' ~/.bashrc
+echo "export XDG_RUNTIME_DIR=\"/run/user/\$UID\"" >> ~/.bashrc
+echo "export DBUS_SESSION_BUS_ADDRESS=\"unix:path=\${XDG_RUNTIME_DIR}/bus\"" >> ~/.bashrc
 echo "if [ -f \"$MANAGER_DIR/boot.sh\" ]; then bash \"$MANAGER_DIR/boot.sh\"; fi" >> ~/.bashrc
+echo -e "${GREEN}    ✅ SSH hook & Env đã được thêm vào ~/.bashrc.${NC}"
 
 # 3. Đăng ký Cronjobs (Dành cho Template OS)
 echo -e "${YELLOW}[3/4] Đăng ký Cronjob khởi động...${NC}"
