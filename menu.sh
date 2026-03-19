@@ -42,7 +42,7 @@ options=(
     "OpenClaw Command (Lệnh điều khiển nhanh)"
     "Domain & SSL (Quản lý Tên miền & SSL)"
     "AI Agents (Quản lý AI Agents)"
-    "Channels v2 (Quản lý Kênh Chat)"
+    "Channels (Quản lý Kênh Chat)"
     "Models (Quản lý AI Models)"
     "System Logs (Nhật ký Hệ thống)"
     "Services (Điều khiển Dịch vụ)"
