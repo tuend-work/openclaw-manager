@@ -11,6 +11,7 @@ RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
+CYAN='\033[0;36m'
 NC='\033[0m'
 
 clear
@@ -19,7 +20,7 @@ echo -e "${YELLOW}       BẮT ĐẦU CÀI ĐẶT OPENCLAW MANAGER         ${NC}
 echo -e "${BLUE}================================================${NC}"
 
 # 1. Phát hiện hệ điều hành và Cấu hình tường lửa
-echo -e "${YELLOW}[1/7] Phát hiện hệ điều hành và mở cổng (Firewall)...${NC}"
+echo -e "${YELLOW}[1/8] Phát hiện hệ điều hành và mở cổng (Firewall)...${NC}"
 
 if [ -f /etc/os-release ]; then
     . /etc/os-release
@@ -52,15 +53,15 @@ open_ports
 
 # 2. Tự động nhận diện thư mục hiện tại
 MANAGER_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
-echo -e "${YELLOW}[2/7] Thư mục quản lý: $MANAGER_DIR...${NC}"
+echo -e "${YELLOW}[2/8] Thư mục quản lý: $MANAGER_DIR...${NC}"
 
 # 3. Cấp quyền thực thi cho các file .sh
-echo -e "${YELLOW}[3/7] Thiết lập quyền thực thi cho các script...${NC}"
+echo -e "${YELLOW}[3/8] Thiết lập quyền thực thi cho các script...${NC}"
 chmod +x "$MANAGER_DIR"/*.sh 2>/dev/null
 chmod +x "$MANAGER_DIR"/cronjob/*.sh 2>/dev/null
 
 # 4. Cấu hình phím tắt 'ocm' (Vĩnh viễn) và SSH Welcome
-echo -e "${YELLOW}[4/7] Cấu hình 'ocm' ${NC}"
+echo -e "${YELLOW}[4/8] Cấu hình 'ocm' ${NC}"
 
 # Tạo symlink trong /usr/local/bin để lệnh ocm có thể chạy ở mọi nơi, mọi lúc
 ln -sf "$MANAGER_DIR/menu.sh" /usr/local/bin/ocm
@@ -75,9 +76,9 @@ sed -i '/menu.sh/d' ~/.bashrc
 echo "if [ -f \"$MANAGER_DIR/menu.sh\" ]; then bash \"$MANAGER_DIR/menu.sh\"; fi" >> ~/.bashrc
 
 # 5. Kiểm tra các gói phụ thuộc hệ thống theo OS
-echo -e "${YELLOW}[5/7] Cài đặt gói phụ thuộc cho hệ điều hành $OS...${NC}"
+echo -e "${YELLOW}[5/8] Cài đặt gói phụ thuộc cho hệ điều hành $OS...${NC}"
 
-PACKAGES="curl git nginx certbot python3-certbot-nginx sudo"
+PACKAGES="curl git nginx certbot python3-certbot-nginx sudo jq"
 
 if [[ "$OS" == "ubuntu" || "$OS" == "debian" ]]; then
     echo -e "${CYAN}    - Đang cập nhật kho ứng dụng (apt update)...${NC}"
@@ -98,7 +99,7 @@ else
 fi
 
 # 6. Kiểm tra Cơ sở hạ tầng và cài đặt OpenClaw
-echo -e "${YELLOW}[6/7] Kiểm tra hệ thống & OpenClaw Core...${NC}"
+echo -e "${YELLOW}[6/8] Kiểm tra hệ thống & OpenClaw Core...${NC}"
 
 # Kiểm tra bộ nhớ Swap
 echo -e "${YELLOW}    - Kiểm tra bộ nhớ Swap...${NC}"
@@ -203,8 +204,7 @@ if ! command -v openclaw &> /dev/null; then
         cp "$MANAGER_DIR/openclaw-templates/openclaw.env.example" "$HOME/.openclaw/.env"
         cp "$MANAGER_DIR/openclaw-templates/openclaw.json" "$HOME/.openclaw/"
 
-        # Cập nhật hostname và token mật khẩu tự động
-        sed -i "s/ai.example.com/$(hostname)/g" "$HOME/.openclaw/.env"
+        # Cập nhật token mật khẩu tự động (domain sẽ được cập nhật sau ở bước 7)
         sed -i "s/your_secure_random_token_here/$(openssl rand -hex 32)/g" "$HOME/.openclaw/.env"
         # Cài đặt Gateway Service thủ công
         install_gateway_service
@@ -229,14 +229,42 @@ openclaw completion --shell bash --install > /dev/null 2>&1
 # Sourcing profile cho phiên làm việc hiện tại luôn
 source ~/.bashrc > /dev/null 2>&1 || true
 
-# 7. Thiết lập Cronjob
-echo -e "${YELLOW}[7/7] Thiết lập Cronjob ${NC}"
+# 7. Thiết lập Domain & SSL (Nginx Proxy) - Tự động từ hostname
+echo -e "${YELLOW}[7/8] Cấu hình Domain & SSL...${NC}"
+CURRENT_HOSTNAME=$(hostname)
+
+# Bỏ qua nếu hostname là giá trị mặc định (chưa được đặt domain)
+if [[ "$CURRENT_HOSTNAME" == "localhost" || "$CURRENT_HOSTNAME" == "ubuntu" || "$CURRENT_HOSTNAME" == "debian" || -z "$CURRENT_HOSTNAME" ]]; then
+    echo -e "${YELLOW}    - Hostname hiện tại là '$CURRENT_HOSTNAME' (mặc định). Bỏ qua cấu hình Domain.${NC}"
+    echo -e "${YELLOW}    - Hãy đặt hostname thành domain thực và chạy lại, hoặc cài sau qua menu OCM > Quản lý Domain & SSL.${NC}"
+    echo "$CURRENT_HOSTNAME" > "$MANAGER_DIR/cronjob/.last_hostname"
+elif [[ ! $CURRENT_HOSTNAME =~ ^[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$ ]]; then
+    echo -e "${YELLOW}    - Hostname '$CURRENT_HOSTNAME' không phải domain hợp lệ. Bỏ qua cấu hình Nginx & SSL.${NC}"
+    echo -e "${YELLOW}    - Bạn có thể cài domain sau bằng menu OCM > Quản lý Domain & SSL.${NC}"
+    echo "$CURRENT_HOSTNAME" > "$MANAGER_DIR/cronjob/.last_hostname"
+else
+    echo -e "${CYAN}    - Phát hiện hostname: ${WHITE}$CURRENT_HOSTNAME${NC}"
+    echo -e "${CYAN}    - Đang tự động cấu hình Nginx Proxy & SSL...${NC}"
+    
+    # Cập nhật domain vào file .env
+    if [ -f "$HOME/.openclaw/.env" ]; then
+        sed -i "s/ai.example.com/$CURRENT_HOSTNAME/g" "$HOME/.openclaw/.env"
+    fi
+    
+    # Gọi manage_domain.sh để tạo Nginx config + SSL
+    bash "$MANAGER_DIR/manage_domain.sh" "$CURRENT_HOSTNAME" 18789
+    
+    # Lưu hostname cho cronjob kiểm tra sau reboot
+    echo "$CURRENT_HOSTNAME" > "$MANAGER_DIR/cronjob/.last_hostname"
+    
+    echo -e "${GREEN}    - Hoàn tất cấu hình Domain & SSL cho $CURRENT_HOSTNAME!${NC}"
+fi
+
+# 8. Thiết lập Cronjob
+echo -e "${YELLOW}[8/8] Thiết lập Cronjob ${NC}"
 
 CRON_CMD="/usr/bin/openclaw devices approve --latest"
 CRON_REBOOT_SCRIPT="$MANAGER_DIR/cronjob/check-reboot-hostname.sh"
-
-# Khởi tạo file last_hostname lần đầu
-hostname > "$MANAGER_DIR/cronjob/.last_hostname"
 
 # Kiểm tra và thêm cronjob nếu chưa có (tránh trùng lặp)
 (crontab -l 2>/dev/null | grep -v "openclaw devices approve" | grep -v "check-reboot-hostname.sh"; echo "* * * * * $CRON_CMD > /dev/null 2>&1"; echo "@reboot bash $CRON_REBOOT_SCRIPT") | crontab -
@@ -245,4 +273,9 @@ echo -e "${GREEN}    - Đã thêm Cronjob kiểm tra cấu hình Domain khi tự
 
 echo -e "${BLUE}================================================${NC}"
 echo -e "${GREEN}             CÀI ĐẶT HOÀN TẤT!                 ${NC}"
+echo -e "${BLUE}================================================${NC}"
+if [[ $CURRENT_HOSTNAME =~ ^[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$ ]]; then
+    echo -e "${GREEN}  🌐 Dashboard: https://$CURRENT_HOSTNAME${NC}"
+fi
+echo -e "${YELLOW}  💡 Gõ 'ocm' để mở menu quản lý OpenClaw.${NC}"
 echo -e "${BLUE}================================================${NC}"
