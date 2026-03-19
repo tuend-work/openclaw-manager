@@ -124,22 +124,34 @@ execute_tg_action() {
 }
 
 # Main Loop for manage_channels
-main_options=("Telegram (Hỗ trợ cấu hình nhanh)" "Other Channels (Manual Setup)" "Quay lại Menu chính")
+main_options=(
+    "Cấu hình nhanh Telegram (Quick Config)"
+    "KẾT NỐI TÀI KHOẢN BOT MỚI (Connect New Account)"
+    "Danh sách các Kênh / Tài khoản (List Accounts)"
+    "Gỡ bỏ Tài khoản (Remove Account)"
+    "Trạng thái kết nối (Status Probe)"
+    "Kiểm tra khả năng Kênh (Capabilities)"
+    "Tìm kiếm Channel ID (Resolve Names)"
+    "Xem nhật ký Kênh (Channels Logs)"
+    "Quay lại Menu chính"
+)
 main_current=0
 
 while true; do
     clear
     echo -e "${CYAN}┌──────────────────────────────────────────────┐${NC}"
-    echo -e "${CYAN}│${NC}          ${BOLD}${WHITE}QUẢN LÝ KÊNH CHAT (CHANNELS)${NC}         ${CYAN}│${NC}"
+    echo -e "${CYAN}│${NC}           ${BOLD}${WHITE}QUẢN LÝ KÊNH CHAT - CHANNELS V2${NC}    ${CYAN}│${NC}"
     echo -e "${CYAN}└──────────────────────────────────────────────┘${NC}"
     echo -e " ${WHITE}●${NC} Trạng thái OpenClaw: ${GREEN}Đang hoạt động${NC}"
+    echo -e " ${WHITE}●${NC} Multi-Bot: ${MAGENTA}Hỗ trợ nhiều Bot & Agent cùng lúc${NC}"
+    echo -e " ${WHITE}●${NC} Docs: ${GRAY}https://docs.openclaw.ai/cli/channels${NC}"
     echo -e "${CYAN}------------------------------------------------${NC}"
-    echo -e " ${BOLD}${YELLOW}Sử dụng [↑/↓] hoặc phím số [1-3]:${NC}"
+    echo -e " ${BOLD}${YELLOW}Sử dụng [↑/↓] hoặc phím số [1-8, 0]:${NC}"
     echo ""
 
     for i in "${!main_options[@]}"; do
         display_num=$((i + 1))
-        [ $display_num -eq 3 ] && display_num=0
+        [ $display_num -eq 9 ] && display_num=0
         if [ "$i" -eq "$main_current" ]; then
             echo -e "  ${BG_CYAN}${BOLD}${WHITE} ➜ $display_num. ${main_options[$i]} ${NC}"
         else
@@ -157,18 +169,34 @@ while true; do
                 case "$next_key" in
                     "[A") main_current=$(( (main_current - 1 + ${#main_options[@]}) % ${#main_options[@]} )) ;;
                     "[B") main_current=$(( (main_current + 1) % ${#main_options[@]} )) ;;
-                esac
-                ;;
-            1) show_telegram_menu ;;
+                esac ;;
+            1) show_telegram_menu ;; # Renamed from show_telegram_quick_config to show_telegram_menu
             2) 
                 tput cnorm
-                echo -e "\n${MAGENTA}------------------------------------------------${NC}"
-                echo -e "${YELLOW}💡 THÔNG BÁO:${NC}"
-                echo -e "OCM Script hiện chỉ hỗ trợ giao diện cấu hình nhanh"
-                echo -e "cho ${BOLD}Telegram${NC}. Các kênh khác vui lòng setup thủ công."
-                echo -e "${MAGENTA}------------------------------------------------${NC}"
-                read -p "Nhấn Enter để quay lại..." ;;
-            0|3) exit 0 ;;
+                echo -e "${CYAN}Kết nối Bot Telegram mới:${NC}"
+                echo -ne "${YELLOW}➤ Nhập Bot Token mới:${NC} "; read bot_token
+                echo -ne "${YELLOW}➤ Nhập Account ID (VD: bot2):${NC} "; read bot_id
+                if [ -n "$bot_token" ]; then
+                    openclaw channels add --channel telegram --token "$bot_token" --account "${bot_id:-default}"
+                    restart_gateway
+                fi ;;
+            3) tput cnorm; echo -e "${CYAN}Danh sách tài khoản đang chạy:${NC}"; openclaw channels list ;;
+            4) 
+                tput cnorm; echo -e "${YELLOW}Danh sách tài khoản:${NC}"; openclaw channels list
+                echo -ne "${YELLOW}➤ Nhập Channel (telegram/...):${NC} "; read d_chan
+                echo -ne "${YELLOW}➤ Nhập Account ID cần gỡ:${NC} "; read d_acc
+                if [ -n "$d_acc" ]; then
+                    openclaw channels remove --channel "$d_chan" --account "$d_acc" --delete
+                    restart_gateway
+                fi ;;
+            5) tput cnorm; echo -e "${CYAN}Kiểm tra trạng thái kết nối...${NC}"; openclaw channels status ;;
+            6) tput cnorm; echo -e "${CYAN}Kiểm tra khả năng phản hồi (Capabilities)...${NC}"; openclaw channels capabilities ;;
+            7) 
+                tput cnorm; echo -n "Chọn kênh: "; read ch_name
+                echo -n "Tên (VD: #general): "; read r_name
+                if [ -n "$ch_name" ]; then openclaw channels resolve --channel "$ch_name" "$r_name"; fi ;;
+            8) tput cnorm; echo -e "${CYAN}Xem nhật ký hoạt động kênh...${NC}"; openclaw channels logs --channel all ;;
+            0|9) exit 0 ;;
             "") # Enter
                 case $main_current in
                     0) show_telegram_menu ;;
