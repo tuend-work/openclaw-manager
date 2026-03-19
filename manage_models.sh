@@ -194,9 +194,10 @@ execute_action() {
                 echo -e "  ${WHITE}3.${NC} Paste Token (Dán token trực tiếp vào cấu hình)"
                 echo -e "  ${WHITE}4.${NC} Setup Token (Chạy CLI tạo/đồng bộ token)"
                 echo -e "  ${WHITE}5.${NC} Login GitHub Copilot (Device Flow)"
+                echo -e "  ${WHITE}6.${NC} OpenAI + Codex Auth Subscription"
                 echo -e "  ${WHITE}0.${NC} Quay lại"
                 echo -e "${CYAN}────────────────────────────────────────────────${NC}"
-                echo -n -e "\n${YELLOW}Chọn tác vụ [1-5, 0]: ${NC}"
+                echo -n -e "\n${YELLOW}Chọn tác vụ [1-6, 0]: ${NC}"
                 read auth_opt
 
                 case $auth_opt in
@@ -205,6 +206,7 @@ execute_action() {
                     3) echo -e "${CYAN}Chạy: openclaw models auth paste-token...${NC}"; openclaw models auth paste-token ;;
                     4) echo -e "${CYAN}Chạy: openclaw models auth setup-token...${NC}"; openclaw models auth setup-token ;;
                     5) echo -e "${CYAN}Chạy: openclaw models auth login-github-copilot...${NC}"; openclaw models auth login-github-copilot ;;
+                    6) echo -e "${CYAN}Chạy: openclaw models auth login --provider openai-codex...${NC}"; openclaw models auth login --provider openai-codex ;;
                     0) break ;;
                     *) echo -e "${RED}Lựa chọn không hợp lệ!${NC}"; sleep 1 ;;
                 esac
