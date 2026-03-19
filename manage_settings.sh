@@ -17,6 +17,17 @@ BOLD='\033[1m'
 NC='\033[0m'
 BG_CYAN='\033[46m'
 
+# Helper: Restart gateway để cập nhật có hiệu lực
+restart_gateway() {
+    echo -e "${YELLOW}⏳ Đang khởi động lại Gateway để áp dụng thay đổi...${NC}"
+    openclaw gateway restart > /dev/null 2>&1
+    if [ $? -eq 0 ]; then
+        echo -e "${GREEN}✅ Gateway đã được khởi động lại thành công!${NC}"
+    else
+        echo -e "${RED}⚠️  Không thể khởi động lại Gateway. Hãy chạy thủ công: openclaw gateway restart${NC}"
+    fi
+}
+
 if ! command -v openclaw &> /dev/null; then
     echo -e "${RED}Lỗi: OpenClaw chưa được cài đặt.${NC}"
     read -p "Nhấn Enter để quay lại..."
@@ -87,6 +98,7 @@ execute_action() {
             if [ -n "$val" ]; then
                 openclaw config set gateway.port "$val"
                 echo -e "${GREEN}Đã cấu hình gateway.port = $val${NC}"
+                restart_gateway
             fi
             ;;
         1) # Gateway Token
@@ -96,6 +108,7 @@ execute_action() {
                 openclaw config set gateway.auth.token "$val" > /dev/null 2>&1
                 openclaw config set gateway.remote.token "$val" > /dev/null 2>&1
                 echo -e "${GREEN}Đã cấu hình Gateway Token thành công.${NC}"
+                restart_gateway
             fi
             ;;
         2) # Tailscale Mode
@@ -107,9 +120,11 @@ execute_action() {
             if [ "$val" == "1" ]; then
                 openclaw config set gateway.tailscale.mode "on"
                 echo -e "${GREEN}Đã bật Tailscale.${NC}"
+                restart_gateway
             elif [ "$val" == "2" ]; then
                 openclaw config set gateway.tailscale.mode "off"
                 echo -e "${GREEN}Đã tắt Tailscale.${NC}"
+                restart_gateway
             fi
             ;;
         3) # Telegram Token
@@ -119,6 +134,7 @@ execute_action() {
                 openclaw config set channels.telegram.botToken "$val"
                 openclaw config set channels.telegram.enabled true
                 echo -e "${GREEN}Đã cấu hình Telegram Bot Token và Enable kênh.${NC}"
+                restart_gateway
             fi
             ;;
         4) # Telegram AllowFrom
@@ -133,6 +149,7 @@ execute_action() {
                 json_arr="${json_arr%,}]" # Remove last comma and close
                 openclaw config set channels.telegram.allowFrom "$json_arr"
                 echo -e "${GREEN}Đã cấu hình AllowFrom: $json_arr${NC}"
+                restart_gateway
             fi
             ;;
         5) # AI Model
@@ -141,6 +158,7 @@ execute_action() {
             if [ -n "$val" ]; then
                 openclaw config set agents.defaults.model.primary "$val"
                 echo -e "${GREEN}Đã cấu hình AI Agent Model mặc định = $val${NC}"
+                restart_gateway
             fi
             ;;
         6) # Allowed Origins
@@ -149,6 +167,7 @@ execute_action() {
             if [ -n "$val" ]; then
                 openclaw config set gateway.controlUi.allowedOrigins "[\"$val\"]"
                 echo -e "${GREEN}Đã cập nhật Allowed Origins thành $val${NC}"
+                restart_gateway
             fi
             ;;
         7) # Custom Configuration
@@ -162,6 +181,7 @@ execute_action() {
                     openclaw config set "$c_key" "$c_val"
                     # Display the updated value directly
                     echo -e "${GREEN}Đã thiết lập $c_key = $c_val${NC}"
+                    restart_gateway
                 fi
             fi
             ;;

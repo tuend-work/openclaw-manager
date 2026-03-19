@@ -200,4 +200,13 @@ else
     echo -e "   ➜ Nạp thêm ${GREEN}${fb_count}${NC} models dự phòng vào Fallbacks."
 fi
 
+# Restart gateway để áp dụng cấu hình model mới
+echo -e "${YELLOW}⏳ Đang khởi động lại Gateway để áp dụng thay đổi...${NC}"
+openclaw gateway restart > /dev/null 2>&1
+if [ $? -eq 0 ]; then
+    echo -e "${GREEN}✅ Gateway đã được khởi động lại thành công!${NC}"
+else
+    echo -e "${RED}⚠️  Không thể khởi động lại Gateway. Hãy chạy thủ công: openclaw gateway restart${NC}"
+fi
+
 echo -e "\n${GREEN}✅ Quy trình tối ưu hóa thành công!${NC}"

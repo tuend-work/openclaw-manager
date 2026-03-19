@@ -17,6 +17,17 @@ BOLD='\033[1m'
 NC='\033[0m'
 BG_CYAN='\033[46m'
 
+# Helper: Restart gateway để cập nhật có hiệu lực
+restart_gateway() {
+    echo -e "${YELLOW}⏳ Đang khởi động lại Gateway để áp dụng thay đổi...${NC}"
+    openclaw gateway restart > /dev/null 2>&1
+    if [ $? -eq 0 ]; then
+        echo -e "${GREEN}✅ Gateway đã được khởi động lại thành công!${NC}"
+    else
+        echo -e "${RED}⚠️  Không thể khởi động lại Gateway. Hãy chạy thủ công: openclaw gateway restart${NC}"
+    fi
+}
+
 if ! command -v openclaw &> /dev/null; then
     echo -e "${RED}Lỗi: OpenClaw chưa được cài đặt.${NC}"
     read -p "Nhấn Enter để quay lại..."
@@ -112,6 +123,7 @@ execute_action() {
             if [ -n "$val" ]; then
                 openclaw models set "$val"
                 echo -e "${GREEN}Đã đặt Model chính là $val${NC}"
+                restart_gateway
             fi
             ;;
         5) # Set Image
@@ -120,6 +132,7 @@ execute_action() {
             if [ -n "$val" ]; then
                 openclaw models set-image "$val"
                 echo -e "${GREEN}Đã đặt Image Model chính là $val${NC}"
+                restart_gateway
             fi
             ;;
         6) # Aliases
@@ -137,10 +150,12 @@ execute_action() {
                 echo -n "Nhập Model ID thực (VD: openai/gpt-4o): "
                 read model_id
                 openclaw models aliases add "$alias_name" "$model_id"
+                restart_gateway
             elif [ "$sub_opt" == "2" ]; then
                 echo -n "Nhập tên Alias cần xóa: "
                 read alias_name
                 openclaw models aliases remove "$alias_name"
+                restart_gateway
             fi
             ;;
         7) # Fallbacks
@@ -157,12 +172,15 @@ execute_action() {
                 echo -n "Nhập Model ID dự phòng: "
                 read model_id
                 openclaw models fallbacks add "$model_id"
+                restart_gateway
             elif [ "$sub_opt" == "2" ]; then
                 echo -n "Nhập Model ID cần gỡ dự phòng: "
                 read model_id
                 openclaw models fallbacks remove "$model_id"
+                restart_gateway
             elif [ "$sub_opt" == "3" ]; then
                 openclaw models fallbacks clear
+                restart_gateway
             fi
             ;;
         8) # Auth
@@ -186,6 +204,7 @@ execute_action() {
                 if [ -n "$manual_id" ]; then
                     openclaw models remove "$manual_id"
                     echo -e "${GREEN}Đã thực hiện lệnh xóa '$manual_id'.${NC}"
+                    restart_gateway
                 fi
             else
                 echo -e "${CYAN}Danh sách Models hiện tại trong cấu hình:${NC}"
@@ -206,6 +225,7 @@ execute_action() {
                     if [[ "$confirm" == [yY] || "$confirm" == [yY][eE][sS] ]]; then
                         jq 'del(.agents.defaults.models) | del(.agents.defaults.model.fallbacks) | del(.agents.defaults.model.primary)' "$CONFIG_PATH" > "${CONFIG_PATH}.tmp" && mv "${CONFIG_PATH}.tmp" "$CONFIG_PATH"
                         echo -e "${GREEN}Đã xóa sạch cấu hình bổ sung của AI Models.${NC}"
+                        restart_gateway
                     else
                         echo -e "${YELLOW}Đã hủy thao tác.${NC}"
                     fi
@@ -215,6 +235,7 @@ execute_action() {
                     if [ -n "$manual_id" ]; then
                         openclaw models remove "$manual_id"
                         echo -e "${GREEN}Đã thực hiện lệnh xóa '$manual_id'.${NC}"
+                        restart_gateway
                     fi
                 elif [[ "$del_opt" == "c" || "$del_opt" == "C" || -z "$del_opt" ]]; then
                     echo -e "${YELLOW}Đã hủy thao tác.${NC}"
@@ -225,6 +246,7 @@ execute_action() {
                     if [[ "$confirm" == [yY] || "$confirm" == [yY][eE][sS] ]]; then
                         openclaw models remove "$m_to_delete"
                         echo -e "${GREEN}Đã xóa: $m_to_delete${NC}"
+                        restart_gateway
                     else
                         echo -e "${YELLOW}Đã hủy xóa.${NC}"
                     fi
