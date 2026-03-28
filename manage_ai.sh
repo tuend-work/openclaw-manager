@@ -301,6 +301,30 @@ set_agent_model() {
     fi
 }
 
+# 6. Gán Agent vào Group Telegram
+add_agent_to_group() {
+    tput cnorm
+    echo -e "\n${CYAN}--- GÁN AGENT VÀO GROUP TELEGRAM ---${NC}"
+    if select_agent; then
+        echo -ne "${YELLOW}➤ Nhập ID Group Telegram (VD: -100123456789):${NC} "
+        read group_id
+        [ -z "$group_id" ] && return
+
+        # 1. Cấu hình Channel Telegram (Policy & AllowList)
+        jq --arg gid "$group_id" '.channels.telegram.groupPolicy = "allowlist" | 
+           .channels.telegram.groupAllowFrom |= (. // [] | if contains([$gid]) then . else . + [$gid] end)' \
+           "$JSON_FILE" > "${JSON_FILE}.tmp" && mv "${JSON_FILE}.tmp" "$JSON_FILE"
+
+        # 2. Tạo Binding cho Group
+        jq --arg aid "$selected_agent_id" --arg gid "$group_id" \
+           '.bindings += [{"agentId": $aid, "match": {"channel": "telegram", "chatId": $gid}}]' \
+           "$JSON_FILE" > "${JSON_FILE}.tmp" && mv "${JSON_FILE}.tmp" "$JSON_FILE"
+
+        echo -e "${GREEN}✅ Đã thêm Group $group_id và gán cho agent $selected_agent_id thành công!${NC}"
+        restart_gateway_sl
+    fi
+}
+
 options=(
     "Danh sách Agents (List)"
     "Thêm Agent mới (Add)"
@@ -308,6 +332,7 @@ options=(
     "Xóa bỏ Agent (Delete)"
     "Gán kênh chat cho Agent (Bindings)"
     "Gán AI Model cho Agent (Set Model)"
+    "Gán Agent vào Group Telegram"
     "Quay lại Menu chính"
 )
 current=0
@@ -321,7 +346,8 @@ execute_ai_action() {
         3) delete_agent_enhanced ;;
         4) show_bindings_menu_enhanced ;;
         5) set_agent_model ;;
-        6) exit 0 ;;
+        6) add_agent_to_group ;;
+        7) exit 0 ;;
     esac
     [ "$index" -ne 4 ] && pause_menu
 }
@@ -330,12 +356,12 @@ while true; do
     gather_system_stats
     clear
     show_header "QUẢN LÝ AI AGENTS"
-    echo -e " ${BOLD}${YELLOW}Sử dụng [↑/↓] hoặc phím số [1-5, 0]:${NC}"
+    echo -e " ${BOLD}${YELLOW}Sử dụng [↑/↓] hoặc phím số [1-7, 0]:${NC}"
     echo ""
 
     for i in "${!options[@]}"; do
         display_num=$((i + 1))
-        [ $display_num -eq 6 ] && display_num=0
+        [ $display_num -eq 8 ] && display_num=0
         if [ "$i" -eq "$current" ]; then
             echo -e "  ${BG_CYAN}${BOLD}${WHITE} ➜ $display_num. ${options[$i]} ${NC}"
         else
@@ -354,7 +380,7 @@ while true; do
                     "[A") current=$(( (current - 1 + ${#options[@]}) % ${#options[@]} )) ;;
                     "[B") current=$(( (current + 1) % ${#options[@]} )) ;;
                 esac ;;
-            [1-5]) execute_ai_action $((key - 1)) ;;
+            [1-7]) execute_ai_action $((key - 1)) ;;
             0) exit 0 ;;
             "") execute_ai_action $current ;;
         esac
