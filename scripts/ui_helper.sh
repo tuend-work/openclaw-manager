@@ -53,7 +53,7 @@ show_header() {
     echo -e " ${WHITE}●${NC} Disk: ${YELLOW}${SYS_DISK}${NC} | Uptime: ${YELLOW}${SYS_UPTIME}${NC}"
     echo -e " ${WHITE}●${NC} Net: ${GREEN}↓ ${SYS_NET_IN}M/s${NC} | ${RED}↑ ${SYS_NET_OUT}M/s${NC}"
     echo -e "${CYAN}------------------------------------------------${NC}"
-    echo -e " ${WHITE}●${NC} Dashboard: ${CYAN}https://${domain_name}/#token=${gateway_token:0:8}...${NC}"
+    echo -e " ${WHITE}●${NC} Dashboard: ${CYAN}https://${domain_name}/#token=${gateway_token}${NC}"
 }
 
 # Added Pause function for reuse
