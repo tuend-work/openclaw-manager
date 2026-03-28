@@ -252,12 +252,48 @@ show_bindings_menu_enhanced() {
     done
 }
 
+# 5. Gán Model cho Agent
+set_agent_model() {
+    tput cnorm
+    echo -e "\n${CYAN}--- GÁN AI MODEL CHO AGENT ---${NC}"
+    if select_agent; then
+        # Lấy danh sách model từ catalog
+        mapfile -t models < <(jq -r '.models.catalog[].id' "$JSON_FILE" 2>/dev/null)
+        if [ ${#models[@]} -eq 0 ]; then
+            echo -e "${YELLOW}➤ Không tìm thấy model trong catalog. Vui lòng nhập ID thủ công:${NC} "
+            read sel_model
+        else
+            echo -e "${YELLOW}Chọn AI Model cho Agent ${BOLD}${WHITE}$selected_agent_id${NC}:"
+            for i in "${!models[@]}"; do
+                echo -e "  $((i+1)). ${CYAN}${models[$i]}${NC}"
+            done
+            echo -ne "${YELLOW}➤ Nhập số thứ tự [1-${#models[@]}]:${NC} "
+            read m_idx
+            if [[ "$m_idx" =~ ^[0-9]+$ ]] && [ "$m_idx" -ge 1 ] && [ "$m_idx" -le "${#models[@]}" ]; then
+                sel_model="${models[$((m_idx-1))]}"
+            else
+                echo -e "${RED}Lựa chọn không hợp lệ.${NC}"; return
+            fi
+        fi
+
+        if [ -n "$sel_model" ]; then
+            # Cập nhật model.primary cho agent cụ thể trong agents.list
+            jq --arg sid "$selected_agent_id" --arg model "$sel_model" \
+               '(.agents.list[] | select(.id == $sid)).model.primary = $model' \
+               "$JSON_FILE" > "${JSON_FILE}.tmp" && mv "${JSON_FILE}.tmp" "$JSON_FILE"
+            echo -e "${GREEN}✅ Đã gán model $sel_model cho agent $selected_agent_id!${NC}"
+            restart_gateway_sl
+        fi
+    fi
+}
+
 options=(
     "Danh sách Agents (List)"
     "Thêm Agent mới (Add)"
     "Sửa cấu hình Agent (Edit)"
     "Xóa bỏ Agent (Delete)"
     "Gán kênh chat cho Agent (Bindings)"
+    "Gán AI Model cho Agent (Set Model)"
     "Quay lại Menu chính"
 )
 current=0
@@ -270,8 +306,10 @@ execute_ai_action() {
         2) edit_agent_enhanced ;;
         3) delete_agent_enhanced ;;
         4) show_bindings_menu_enhanced ;;
-        5) exit 0 ;;
+        5) set_agent_model ;;
+        6) exit 0 ;;
     esac
+    [ "$index" -ne 4 ] && pause_menu
 }
 
 while true; do
