@@ -7,20 +7,9 @@
 REAL_PATH=$(readlink -f "${BASH_SOURCE[0]}")
 MANAGER_DIR="$( cd "$( dirname "$REAL_PATH" )" &> /dev/null && pwd )"
 
-# 1. Silent OCM Update
-if [ -d "$MANAGER_DIR/.git" ]; then
-    cd "$MANAGER_DIR"
-    git fetch --all > /dev/null 2>&1 &
-    FETCH_PID=$!
-    sleep 3
-    kill $FETCH_PID 2>/dev/null
-    wait $FETCH_PID 2>/dev/null
-    LOCAL_HASH=$(git rev-parse HEAD 2>/dev/null)
-    REMOTE_HASH=$(git rev-parse origin/main 2>/dev/null)
-    if [ -n "$REMOTE_HASH" ] && [ "$LOCAL_HASH" != "$REMOTE_HASH" ]; then
-        git reset --hard origin/main > /dev/null 2>&1
-        chmod +x "$MANAGER_DIR"/*.sh > /dev/null 2>&1
-    fi
+# 1. Silent OCM Update Check
+if [ -f "$MANAGER_DIR/scripts/check_update_silent.sh" ]; then
+    bash "$MANAGER_DIR/scripts/check_update_silent.sh"
 fi
 
 # 2. Check Completeness of .env (Onboarding)
