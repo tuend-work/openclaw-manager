@@ -42,10 +42,19 @@ execute_action() {
     case $index in
         0) echo -n "Nhập Cổng mới (Mặc định 18789): "; read val
            [ -n "$val" ] && openclaw config set gateway.port "$val" && restart_gateway ;;
-        1) echo -n "Nhập Gateway Token bảo mật: "; read val
-           [ -n "$val" ] && openclaw config set gateway.auth.token "$val" && restart_gateway ;;
-        2) echo -n "Nhập Key: "; read c_key; echo -n "Nhập Value: "; read c_val
-           [ -n "$c_key" ] && openclaw config set "$c_key" "$c_val" && restart_gateway ;;
+        1) echo -n "Nhập Gateway Token bảo mật mới: "; read val
+           if [ -n "$val" ]; then
+                ENV_PATH="$HOME/.openclaw/.env"
+                if [ -f "$ENV_PATH" ]; then
+                    sed -i "s|^OPENCLAW_GATEWAY_TOKEN=.*|OPENCLAW_GATEWAY_TOKEN=\"$val\"|" "$ENV_PATH"
+                    echo -e "${GREEN}✅ Đã cập nhật Token vào file .env!${NC}"
+                    restart_gateway
+                else
+                    echo -e "${RED}❌ Lỗi: Không tìm thấy file .env tại $ENV_PATH${NC}"
+                fi
+           fi ;;
+        2) echo -n "Nhập Domain (CORS allowedOrigins): "; read val
+           [ -n "$val" ] && openclaw config set gateway.controlUi.allowedOrigins "[\"$val\"]" && restart_gateway ;;
         3) systemctl restart openclaw > /dev/null 2>&1; echo -e "${GREEN}Restart hoàn tất!${NC}" ;;
     esac
     pause_menu
