@@ -1,41 +1,187 @@
 #!/bin/bash
 
 # =========================================================
-# OPENCLAW MANAGER - AI AGENTS & BINDINGS
+# OPENCLAW MANAGER - AI AGENTS & BINDINGS (MULTI-AGENT)
 # =========================================================
 
 REAL_PATH=$(readlink -f "${BASH_SOURCE[0]}")
 MANAGER_DIR="$( cd "$( dirname "$REAL_PATH" )" &> /dev/null && pwd )"
+JSON_FILE="$HOME/.openclaw/openclaw.json"
 
 # UI Helper inclusion
 source "$MANAGER_DIR/scripts/ui_helper.sh"
 
 # Helper: Restart gateway
-restart_gateway() {
+restart_gateway_sl() {
     echo -e "${YELLOW}⏳ Đang khởi động lại Gateway...${NC}"
-    openclaw gateway restart > /dev/null 2>&1
-    echo -e "${GREEN}✅ Gateway đã được khởi động lại thành công!${NC}"
+    if systemctl --user is-active openclaw-gateway.service >/dev/null 2>&1; then
+        systemctl --user restart openclaw-gateway.service
+    else
+        openclaw gateway restart > /dev/null 2>&1
+    fi
+    [ $? -eq 0 ] && echo -e "${GREEN}✅ Thành công!${NC}" || echo -e "${RED}❌ Lỗi restart.${NC}"
     sleep 1
 }
 
-# Sub-menu for Bindings with Header & Navigation
-show_bindings_menu() {
-    local b_options=("Tạo kết nối mới (Bind)" "Gỡ bỏ kết nối (Unbind)" "Quay lại")
+# Helper: Chọn Agent từ danh sách
+select_agent() {
+    mapfile -t agent_ids < <(jq -r '.agents.list[].id' "$JSON_FILE" 2>/dev/null)
+    if [ ${#agent_ids[@]} -eq 0 ]; then
+        echo -e "${RED}Không tìm thấy Agent nào.${NC}"
+        return 1
+    fi
+
+    echo -e "${YELLOW}Chọn Agent:${NC}"
+    for i in "${!agent_ids[@]}"; do
+        echo -e "  $((i+1)). ${CYAN}${agent_ids[$i]}${NC}"
+    done
+    echo -ne "${YELLOW}➤ Nhập số thứ tự [1-${#agent_ids[@]}]:${NC} "
+    read a_idx
+    if [[ ! "$a_idx" =~ ^[0-9]+$ ]] || [ "$a_idx" -lt 1 ] || [ "$a_idx" -gt "${#agent_ids[@]}" ]; then
+        echo -e "${RED}Lỗi: Lựa chọn không hợp lệ.${NC}"
+        return 1
+    fi
+    selected_agent_id="${agent_ids[$((a_idx-1))]}"
+    return 0
+}
+
+# Helper: Chọn Kênh và Tài khoản
+select_channel_account() {
+    # Chọn Channel
+    mapfile -t channels < <(jq -r '.channels | keys[]' "$JSON_FILE" 2>/dev/null)
+    if [ ${#channels[@]} -eq 0 ]; then
+        echo -e "${RED}Không tìm thấy loại kênh nào.${NC}"
+        return 1
+    fi
+
+    echo -e "${YELLOW}Chọn loại kênh:${NC}"
+    for i in "${!channels[@]}"; do
+        echo -e "  $((i+1)). ${CYAN}${channels[$i]}${NC}"
+    done
+    read -p "➤ Nhập số: " c_idx
+    [ -z "$c_idx" ] || [[ ! "$c_idx" =~ ^[0-9]+$ ]] && return 1
+    sel_chan="${channels[$((c_idx-1))]}"
+
+    # Chọn Account
+    mapfile -t accounts < <(jq -r ".channels.\"$sel_chan\".accounts | keys[]" "$JSON_FILE" 2>/dev/null)
+    if [ ${#accounts[@]} -eq 0 ]; then
+        echo -e "${RED}Không có tài khoản nào trong kênh này.${NC}"
+        return 1
+    fi
+
+    echo -e "${YELLOW}Chọn tài khoản:${NC}"
+    for i in "${!accounts[@]}"; do
+        echo -e "  $((i+1)). ${WHITE}${accounts[$i]}${NC}"
+    done
+    read -p "➤ Nhập số: " ac_idx
+    [ -z "$ac_idx" ] || [[ ! "$ac_idx" =~ ^[0-9]+$ ]] && return 1
+    sel_acc="${accounts[$((ac_idx-1))]}"
+    
+    return 0
+}
+
+# 1. Liệt kê Agents
+list_agents() {
+    tput cnorm
+    clear
+    show_header "DANH SÁCH AI AGENTS (AGENT LIST)"
+    echo -e "${WHITE}ID Agent             Workspace Path${NC}"
+    echo -e "${CYAN}------------------------------------------------${NC}"
+    jq -r '.agents.list[] | "\(.id)|\(.workspace)"' "$JSON_FILE" | while IFS='|' read -r id ws; do
+        printf " ${MAGENTA}%-20s${NC} ${YELLOW}%-30s${NC}\n" "$id" "$ws"
+    done
+    echo ""
+    pause_menu
+}
+
+# 2. Thêm Agent mới
+add_agent_enhanced() {
+    tput cnorm
+    echo -e "\n${CYAN}--- THÊM AGENT MỚI ---${NC}"
+    read -p "➤ Nhập ID cho Agent (VD: support-bot): " a_id
+    [ -z "$a_id" ] && return
+    
+    # Check duplicate
+    if jq -e ".agents.list[] | select(.id == \"$a_id\")" "$JSON_FILE" >/dev/null; then
+        echo -e "${RED}Lỗi: ID này đã tồn tại.${NC}"
+        sleep 2; return
+    fi
+
+    read -p "➤ Tên hiển thị (Tùy chọn): " a_name
+    workspace="~/.openclaw/workspace-$a_id"
+    
+    # Add to JSON
+    # Note: openclaw config set agents.list.[] '{"id": "...", "workspace": "..."}' is not standard.
+    # We use jq directly to append to array.
+    jq --arg id "$a_id" --arg ws "$workspace" '.agents.list += [{"id": $id, "workspace": $ws}]' "$JSON_FILE" > "${JSON_FILE}.tmp" && mv "${JSON_FILE}.tmp" "$JSON_FILE"
+    
+    echo -e "${GREEN}✅ Đã thêm Agent $a_id thành công!${NC}"
+    
+    echo -ne "${YELLOW}➤ Bạn có muốn Gán (Bind) Agent này cho kênh chat ngay không? (y/n):${NC} "
+    read do_bind
+    if [[ "$do_bind" =~ ^[yY] ]]; then
+        if select_channel_account; then
+            jq --arg aid "$a_id" --arg chan "$sel_chan" --arg acc "$sel_acc" \
+               '.bindings += [{"agentId": $aid, "match": {"channel": $chan, "accountId": $acc}}]' \
+               "$JSON_FILE" > "${JSON_FILE}.tmp" && mv "${JSON_FILE}.tmp" "$JSON_FILE"
+            echo -e "${GREEN}✅ Đã gán thành công!${NC}"
+        fi
+    fi
+    
+    restart_gateway_sl
+}
+
+# 3. Sửa Agent
+edit_agent_enhanced() {
+    tput cnorm
+    echo -e "\n${CYAN}--- CHỈNH SỬA AGENT ---${NC}"
+    if select_agent; then
+        echo -e "${YELLOW}Bạn đang sửa Agent: ${BOLD}${WHITE}$selected_agent_id${NC}"
+        read -p "➤ Nhập workspace mới [Bỏ qua để giữ nguyên]: " new_ws
+        if [ -n "$new_ws" ]; then
+            jq --arg sid "$selected_agent_id" --arg ws "$new_ws" \
+               '(.agents.list[] | select(.id == $sid)).workspace = $ws' \
+               "$JSON_FILE" > "${JSON_FILE}.tmp" && mv "${JSON_FILE}.tmp" "$JSON_FILE"
+            echo -e "${GREEN}✅ Đã cập nhật xong!${NC}"
+            restart_gateway_sl
+        fi
+    fi
+}
+
+# 4. Xóa Agent
+delete_agent_enhanced() {
+    tput cnorm
+    echo -e "\n${RED}--- XÓA AI AGENT ---${NC}"
+    if select_agent; then
+        echo -ne "${RED}${BOLD}➤ Xác nhận xóa Agent $selected_agent_id? (y/n):${NC} "
+        read confirm
+        if [[ "$confirm" =~ ^[yY] ]]; then
+            # Xóa khỏi list
+            jq --arg sid "$selected_agent_id" '.agents.list |= map(select(.id != $sid))' "$JSON_FILE" > "${JSON_FILE}.tmp" && mv "${JSON_FILE}.tmp" "$JSON_FILE"
+            # Xóa khỏi bindings
+            jq --arg sid "$selected_agent_id" '.bindings |= map(select(.agentId != $sid))' "$JSON_FILE" > "${JSON_FILE}.tmp" && mv "${JSON_FILE}.tmp" "$JSON_FILE"
+            
+            echo -e "${GREEN}✅ Đã xóa Agent và các kết nối liên quan!${NC}"
+            restart_gateway_sl
+        fi
+    fi
+}
+
+# Sub-menu for Bindings (Gán kênh chat)
+show_bindings_menu_enhanced() {
+    local b_options=("Danh sách kết nối" "Tạo kết nối mới (Bind)" "Gỡ bỏ kết nối (Unbind)" "Quay lại")
     local b_current=0
 
     while true; do
         gather_system_stats
         clear
-        show_header "QUẢN LÝ KẾT NỐI (BINDINGS)"
-        echo -e " ${WHITE}●${NC} Chức năng: Gán Agent cho một tài khoản cụ thể."
-        echo -e "${CYAN}------------------------------------------------${NC}"
-        echo -e "${YELLOW}Danh sách Kết nối Hiện tại:${NC}"
-        openclaw agents bindings
+        show_header "GÁN KÊNH CHAT CHO AGENT (BINDINGS)"
+        echo -e " ${BOLD}${YELLOW}Sử dụng [↑/↓] hoặc phím số [1-3, 0]:${NC}"
         echo ""
         
         for i in "${!b_options[@]}"; do
             display_num=$((i + 1))
-            [ $display_num -eq 3 ] && display_num=0
+            [ $display_num -eq 4 ] && display_num=0
             if [ "$i" -eq "$b_current" ]; then
                 echo -e "  ${BG_CYAN}${BOLD}${WHITE} ➜ $display_num. ${b_options[$i]} ${NC}"
             else
@@ -54,32 +200,52 @@ show_bindings_menu() {
                         "[A") b_current=$(( (b_current - 1 + ${#b_options[@]}) % ${#b_options[@]} )) ;;
                         "[B") b_current=$(( (b_current + 1) % ${#b_options[@]} )) ;;
                     esac ;;
-                1) # Bind
-                    tput cnorm
-                    echo -e "${YELLOW}Danh sách Agents:${NC}"; openclaw agents list
-                    echo -ne "${YELLOW}➤ Nhập ID của Agent:${NC} "; read b_agent
-                    echo -e "${YELLOW}Danh sách Accounts:${NC}"; openclaw channels list
-                    echo -ne "${YELLOW}➤ Nhập Channel (telegram):${NC} "; read b_chan
-                    echo -ne "${YELLOW}➤ Nhập Account ID (default):${NC} "; read b_acc
-                    [ -n "$b_agent" ] && openclaw agents bind --agent "$b_agent" --channel "$b_chan" --account "$b_acc" && restart_gateway
+                1) # List
+                    tput cnorm; echo -e "${YELLOW}Các kết nối (Agent ⇹ Channel):${NC}"
+                    jq -r '.bindings[] | "\(.agentId) ⇹ \(.match.channel) (\(.match.accountId))"' "$JSON_FILE" || echo "Trống."
                     pause_menu ;;
-                2) # Unbind
+                2) # Bind
                     tput cnorm
-                    echo -ne "${YELLOW}➤ Nhập ID Agent cần gỡ kết nối:${NC} "; read u_agent
-                    echo -ne "${YELLOW}➤ Nhập Channel:${NC} "; read u_chan
-                    echo -ne "${YELLOW}➤ Nhập Account ID:${NC} "; read u_acc
-                    [ -n "$u_agent" ] && openclaw agents unbind --agent "$u_agent" --channel "$u_chan" --account "$u_acc" && restart_gateway
+                    if select_agent; then
+                        if select_channel_account; then
+                            jq --arg aid "$selected_agent_id" --arg chan "$sel_chan" --arg acc "$sel_acc" \
+                               '.bindings += [{"agentId": $aid, "match": {"channel": $chan, "accountId": $acc}}]' \
+                               "$JSON_FILE" > "${JSON_FILE}.tmp" && mv "${JSON_FILE}.tmp" "$JSON_FILE"
+                            echo -e "${GREEN}✅ Đã gán thành công!${NC}"
+                            restart_gateway_sl
+                        fi
+                    fi
                     pause_menu ;;
-                0|3) return ;;
-                "") # Enter key
+                3) # Unbind
+                    tput cnorm
+                    echo -e "${YELLOW}Chọn kết nối để gỡ:${NC}"
+                    mapfile -t binds < <(jq -r '.bindings[] | "\(.agentId)|\(.match.channel)|\(.match.accountId)"' "$JSON_FILE")
+                    if [ ${#binds[@]} -eq 0 ]; then echo "Không có kết nối nào."; sleep 1; 
+                    else
+                        for i in "${!binds[@]}"; do
+                            IFS='|' read -r aid chan acc <<< "${binds[$i]}"
+                            echo -e "  $((i+1)). ${CYAN}$aid${NC} ⇹ $chan ($acc)"
+                        done
+                        read -p "➤ Nhập số để gỡ: " u_idx
+                        if [[ -n "$u_idx" ]] && [ "$u_idx" -le "${#binds[@]}" ]; then
+                            IFS='|' read -r aid chan acc <<< "${binds[$((u_idx-1))]}"
+                            jq --arg aid "$aid" --arg chan "$chan" --arg acc "$acc" \
+                               '.bindings |= map(select(.agentId != $aid or .match.channel != $chan or .match.accountId != $acc))' \
+                               "$JSON_FILE" > "${JSON_FILE}.tmp" && mv "${JSON_FILE}.tmp" "$JSON_FILE"
+                            echo -e "${GREEN}✅ Đã gỡ kết nối!${NC}"
+                            restart_gateway_sl
+                        fi
+                    fi
+                    pause_menu ;;
+                0|4) return ;;
+                "") # Enter
                     case $b_current in
-                        0) # Same logic as key 1
-                           tput cnorm; echo -ne "${YELLOW}Agent ID: "; read b_agent; echo -ne "Channel: "; read b_chan; echo -ne "Account ID: "; read b_acc
-                           [ -n "$b_agent" ] && openclaw agents bind --agent "$b_agent" --channel "$b_chan" --account "$b_acc" && restart_gateway; pause_menu ;;
-                        1) # Same logic as key 2
-                           tput cnorm; echo -ne "Agent ID: "; read u_agent; echo -ne "Channel: "; read u_chan; echo -ne "Account ID: "; read u_acc
-                           [ -n "$u_agent" ] && openclaw agents unbind --agent "$u_agent" --channel "$u_chan" --account "$u_acc" && restart_gateway; pause_menu ;;
-                        2) return ;;
+                        0) tput cnorm; jq -r '.bindings[] | "\(.agentId) ⇹ \(.match.channel) (\(.match.accountId))"' "$JSON_FILE" || echo "Trống."; pause_menu ;;
+                        1) # Bind same logic
+                          tput cnorm; if select_agent; then if select_channel_account; then jq --arg aid "$selected_agent_id" --arg chan "$sel_chan" --arg acc "$sel_acc" '.bindings += [{"agentId": $aid, "match": {"channel": $chan, "accountId": $acc}}]' "$JSON_FILE" > "${JSON_FILE}.tmp" && mv "${JSON_FILE}.tmp" "$JSON_FILE"; echo -e "${GREEN}✅ Đã gán!${NC}"; restart_gateway_sl; fi; fi; pause_menu ;;
+                        2) # Unbind same logic
+                          tput cnorm; mapfile -t binds < <(jq -r '.bindings[] | "\(.agentId)|\(.match.channel)|\(.match.accountId)"' "$JSON_FILE"); if [ ${#binds[@]} -gt 0 ]; then for i in "${!binds[@]}"; do IFS='|' read -r aid chan acc <<< "${binds[$i]}"; echo -e "  $((i+1)). $aid ⇹ $chan ($acc)"; done; read -p "Chọn số: " u_idx; if [ -n "$u_idx" ]; then IFS='|' read -r aid chan acc <<< "${binds[$((u_idx-1))]}"; jq --arg aid "$aid" --arg chan "$chan" --arg acc "$acc" '.bindings |= map(select(.agentId != $aid or .match.channel != $chan or .match.accountId != $acc))' "$JSON_FILE" > "${JSON_FILE}.tmp" && mv "${JSON_FILE}.tmp" "$JSON_FILE"; echo "Đã gỡ."; restart_gateway_sl; fi; fi; pause_menu ;;
+                        3) return ;;
                     esac ;;
             esac
         fi
@@ -87,43 +253,37 @@ show_bindings_menu() {
 }
 
 options=(
-    "Danh sách Agents (List All)"
-    "Thêm Agent mới (Add Agent)"
-    "Xóa Agent (Remove Agent)"
-    "Quản lý Kết nối (Bindings)"
+    "Danh sách Agents (List)"
+    "Thêm Agent mới (Add)"
+    "Sửa cấu hình Agent (Edit)"
+    "Xóa bỏ Agent (Delete)"
+    "Gán kênh chat cho Agent (Bindings)"
     "Quay lại Menu chính"
 )
 current=0
 
 execute_ai_action() {
     local index=$1
-    tput cnorm
     case $index in
-        0) openclaw agents list ;;
-        1) 
-            echo -ne "${YELLOW}➤ Nhập ID cho Agent mới (VD: agent2):${NC} "; read a_id
-            echo -ne "${YELLOW}➤ Nhập tên hiển thị:${NC} "; read a_name
-            [ -n "$a_id" ] && openclaw agents add --id "$a_id" --name "$a_name" && restart_gateway ;;
-        2) 
-            openclaw agents list
-            echo -ne "${YELLOW}➤ Nhập ID Agent cần xóa:${NC} "; read d_id
-            [ -n "$d_id" ] && openclaw agents remove "$d_id" && restart_gateway ;;
-        3) show_bindings_menu; return ;;
-        4) exit 0 ;;
+        0) list_agents ;;
+        1) add_agent_enhanced ;;
+        2) edit_agent_enhanced ;;
+        3) delete_agent_enhanced ;;
+        4) show_bindings_menu_enhanced ;;
+        5) exit 0 ;;
     esac
-    [ "$index" -ne 3 ] && pause_menu
 }
 
 while true; do
     gather_system_stats
     clear
     show_header "QUẢN LÝ AI AGENTS"
-    echo -e " ${BOLD}${YELLOW}Sử dụng [↑/↓] hoặc phím số [1-4, 0]:${NC}"
+    echo -e " ${BOLD}${YELLOW}Sử dụng [↑/↓] hoặc phím số [1-5, 0]:${NC}"
     echo ""
 
     for i in "${!options[@]}"; do
         display_num=$((i + 1))
-        [ $display_num -eq 5 ] && display_num=0
+        [ $display_num -eq 6 ] && display_num=0
         if [ "$i" -eq "$current" ]; then
             echo -e "  ${BG_CYAN}${BOLD}${WHITE} ➜ $display_num. ${options[$i]} ${NC}"
         else
@@ -142,7 +302,7 @@ while true; do
                     "[A") current=$(( (current - 1 + ${#options[@]}) % ${#options[@]} )) ;;
                     "[B") current=$(( (current + 1) % ${#options[@]} )) ;;
                 esac ;;
-            [1-4]) execute_ai_action $((key - 1)) ;;
+            [1-5]) execute_ai_action $((key - 1)) ;;
             0) exit 0 ;;
             "") execute_ai_action $current ;;
         esac
