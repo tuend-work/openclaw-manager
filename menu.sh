@@ -18,7 +18,7 @@ fi
 
 IP_ADDR=$(hostname -I | awk '{print $1}')
 OPENCLAW_VER=$(openclaw --version 2>/dev/null | awk '{print $2}' || echo "N/A")
-OCM_VER="v3.0.1"
+OCM_VER="v3.1.1"
 options=(
     "OpenClaw Quick (Lệnh nhanh)"
     "Domain & SSL (Tên miền)"
