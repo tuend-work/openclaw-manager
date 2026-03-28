@@ -355,53 +355,124 @@ add_agent_to_group() {
     fi
 }
 
+# --- Chức năng Quản lý Group Nâng cao ---
+
+list_telegram_groups() {
+    tput cnorm; clear; show_header "DANH SÁCH TELEGRAM GROUPS"
+    echo -e "${WHITE}ID Group             Menc?   Allowed Users${NC}"
+    echo -e "${CYAN}------------------------------------------------${NC}"
+    jq -r '.channels.telegram.groups | to_entries[] | "\(.key)|\(.value.requireMention)|\(.value.allowFrom | join(","))"' "$JSON_FILE" 2>/dev/null | while IFS='|' read -r gid menc allow; do
+        printf " ${MAGENTA}%-20s${NC} ${YELLOW}%-7s${NC} ${WHITE}%-20s${NC}\n" "$gid" "$menc" "$allow"
+    done
+    echo ""
+    pause_menu
+}
+
+add_telegram_group() {
+    tput cnorm
+    echo -ne "${YELLOW}➤ Nhập ID Group Telegram (VD: -100...):${NC} "
+    read gid
+    [ -z "$gid" ] && return
+    echo -ne "${YELLOW}➤ Bật requireMention? (y/n):${NC} [y] "
+    read menc; [[ "$menc" =~ ^[nN] ]] && menc=false || menc=true
+    
+    jq --arg gid "$gid" --argjson menc "$menc" \
+       '.channels.telegram.groupPolicy = "allowlist" | .channels.telegram.groups[$gid] = {"requireMention": $menc, "allowFrom": []}' \
+       "$JSON_FILE" > "${JSON_FILE}.tmp" && mv "${JSON_FILE}.tmp" "$JSON_FILE"
+    echo -e "${GREEN}✅ Đã thêm Group thành công!${NC}"
+    restart_gateway_sl
+}
+
+edit_telegram_group() {
+    tput cnorm
+    mapfile -t gids < <(jq -r '.channels.telegram.groups | keys[]' "$JSON_FILE" 2>/dev/null)
+    [ ${#gids[@]} -eq 0 ] && return
+    echo -e "${YELLOW}Chọn Group cần sửa:${NC}"
+    for i in "${!gids[@]}"; do echo -e "  $((i+1)). ${CYAN}${gids[$i]}${NC}"; done
+    read -p "➤ Nhập số: " g_idx
+    [ -z "$g_idx" ] || [[ ! "$g_idx" =~ ^[0-9]+$ ]] && return
+    target_gid="${gids[$((g_idx-1))]}"
+
+    echo -ne "${YELLOW}➤ Bật requireMention? (y/n):${NC} "; read menc; [[ "$menc" =~ ^[nN] ]] && menc=false || menc=true
+    echo -ne "${YELLOW}➤ Nhập User IDs được phép (cách nhau dấu phẩy):${NC} "; read uids
+    u_json=$(jq -nc --arg ids "$uids" '$ids | split(",") | map(select(length > 0))')
+
+    jq --arg gid "$target_gid" --argjson menc "$menc" --argjson allow "$u_json" \
+       '.channels.telegram.groups[$gid] = {"requireMention": $menc, "allowFrom": $allow}' \
+       "$JSON_FILE" > "${JSON_FILE}.tmp" && mv "${JSON_FILE}.tmp" "$JSON_FILE"
+    echo -e "${GREEN}✅ Đã cập nhật xong!${NC}"
+    restart_gateway_sl
+}
+
+delete_telegram_group() {
+    tput cnorm
+    mapfile -t gids < <(jq -r '.channels.telegram.groups | keys[]' "$JSON_FILE" 2>/dev/null)
+    [ ${#gids[@]} -eq 0 ] && return
+    echo -e "${YELLOW}Chọn Group để xóa:${NC}"
+    for i in "${!gids[@]}"; do echo -e "  $((i+1)). ${CYAN}${gids[$i]}${NC}"; done
+    read -p "➤ Nhập số: " g_idx
+    [ -z "$g_idx" ] || [[ ! "$g_idx" =~ ^[0-9]+$ ]] && return
+    target_gid="${gids[$((g_idx-1))]}"
+
+    jq --arg gid "$target_gid" 'del(.channels.telegram.groups[$gid]) | .bindings |= map(select(.match.chatId != $gid))' \
+       "$JSON_FILE" > "${JSON_FILE}.tmp" && mv "${JSON_FILE}.tmp" "$JSON_FILE"
+    echo -e "${GREEN}✅ Đã xóa Group và các liên kết liên quan!${NC}"
+    restart_gateway_sl
+}
+
+manage_telegram_groups_submenu() {
+    local g_options=("Danh sách group" "Thêm Group" "Sửa Group" "Xóa Group" "Thoát")
+    local g_current=0
+    while true; do
+        gather_system_stats; clear; show_header "QUẢN LÝ TELEGRAM GROUP"
+        echo -e " ${BOLD}${YELLOW}Sử dụng [↑/↓] hoặc phím số [1-4, 0]:${NC}"
+        for i in "${!g_options[@]}"; do
+            display_num=$((i + 1)); [ $display_num -eq 5 ] && display_num=0
+            if [ "$i" -eq "$g_current" ]; then echo -e "  ${BG_CYAN}${BOLD}${WHITE} ➜ $display_num. ${g_options[$i]} ${NC}"
+            else echo -e "     ${WHITE}$display_num. ${g_options[$i]}${NC}"; fi
+        done
+        tput civis
+        if read -rsn1 -t 3 key; then
+            case "$key" in
+                $'\x1b') read -rsn2 -t 0.1 nk; [ "$nk" == "[A" ] && g_current=$(( (g_current-1+5)%5 )); [ "$nk" == "[B" ] && g_current=$(( (g_current+1)%5 )) ;;
+                1) list_telegram_groups ;;
+                2) add_telegram_group ;;
+                3) edit_telegram_group ;;
+                4) delete_telegram_group ;;
+                0|5) return ;;
+                "") case $g_current in 0) list_telegram_groups ;; 1) add_telegram_group ;; 2) edit_telegram_group ;; 3) delete_telegram_group ;; 4) return ;; esac ;;
+            esac
+        fi
+    done
+}
+
 # Main Menu Logic
-options=("Danh sách kênh (List)" "Thêm kênh chat (Add)" "Sửa kênh chat (Edit)" "Xóa kênh chat (Delete)" "Gán Agent vào Group (Telegram)" "Quay lại Menu chính")
+options=("Danh sách kênh" "Thêm kênh chat" "Sửa kênh chat" "Xóa kênh chat" "Gán Tài khoản vào Group" "Quản lý Telegram Group" "Quay lại")
 current=0
 
 while true; do
-    gather_system_stats
-    clear
-    show_header "QUẢN LÝ KÊNH CHAT (CHANNELS)"
-    echo -e " ${BOLD}${YELLOW}Sử dụng [↑/↓] hoặc phím số [1-5, 0]:${NC}"
+    gather_system_stats; clear; show_header "QUẢN LÝ KÊNH CHAT (CHANNELS)"
+    echo -e " ${BOLD}${YELLOW}Sử dụng [↑/↓] hoặc phím số [1-6, 0]:${NC}"
     echo ""
-
     for i in "${!options[@]}"; do
-        display_num=$((i + 1))
-        [ $display_num -eq 6 ] && display_num=0
-        if [ "$i" -eq "$current" ]; then
-            echo -e "  ${BG_CYAN}${BOLD}${WHITE} ➜ $display_num. ${options[$i]} ${NC}"
-        else
-            echo -e "     ${WHITE}$display_num. ${options[$i]}${NC}"
-        fi
+        display_num=$((i + 1)); [ $display_num -eq 7 ] && display_num=0
+        if [ "$i" -eq "$current" ]; then echo -e "  ${BG_CYAN}${BOLD}${WHITE} ➜ $display_num. ${options[$i]} ${NC}"
+        else echo -e "     ${WHITE}$display_num. ${options[$i]}${NC}"; fi
     done
     echo ""
     echo -e "${CYAN}────────────────────────────────────────────────${NC}"
-
     tput civis
     if read -rsn1 -t 3 key; then
         case "$key" in
-            $'\x1b')
-                read -rsn2 -t 0.1 next_key
-                case "$next_key" in
-                    "[A") current=$(( (current - 1 + ${#options[@]}) % ${#options[@]} )) ;;
-                    "[B") current=$(( (current + 1) % ${#options[@]} )) ;;
-                esac ;;
+            $'\x1b') read -rsn2 -t 0.1 nk; [ "$nk" == "[A" ] && current=$(( (current-1+7)%7 )); [ "$nk" == "[B" ] && current=$(( (current+1)%7 )) ;;
             1) list_channels ;;
             2) add_channel_enhanced ;;
             3) edit_channel_direct ;;
             4) delete_channel_direct ;;
             5) add_agent_to_group ;;
-            0|6) exit 0 ;;
-            "") 
-                case $current in
-                    0) list_channels ;;
-                    1) add_channel_enhanced ;;
-                    2) edit_channel_direct ;;
-                    3) delete_channel_direct ;;
-                    4) add_agent_to_group ;;
-                    5) exit 0 ;;
-                esac ;;
+            6) manage_telegram_groups_submenu ;;
+            0|7) exit 0 ;;
+            "") case $current in 0) list_channels ;; 1) add_channel_enhanced ;; 2) edit_channel_direct ;; 3) delete_channel_direct ;; 4) add_agent_to_group ;; 5) manage_telegram_groups_submenu ;; 6) exit 0 ;; esac ;;
         esac
     fi
 done
