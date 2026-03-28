@@ -154,14 +154,46 @@ add_channel_enhanced() {
 edit_channel_direct() {
     tput cnorm
     echo -e "\n${CYAN}--- SỬA CẤU HÌNH KÊNH CHAT ---${NC}"
-    read -p "Nhập Channel (telegram/zalo/...): " channel_type
-    read -p "Nhập Account ID cần sửa: " account_id
     
-    if [ -z "$account_id" ] || ! jq -e ".channels.\"$channel_type\".accounts.\"$account_id\"" "$JSON_FILE" >/dev/null; then
-        echo -e "${RED}Lỗi: Không tìm thấy tài khoản.$NC"
+    # 1. Chọn Channel Type
+    mapfile -t channels < <(jq -r '.channels | keys[]' "$JSON_FILE" 2>/dev/null)
+    if [ ${#channels[@]} -eq 0 ]; then
+        echo -e "${RED}Không tìm thấy kênh nào để sửa.${NC}"
         sleep 2; return
     fi
+
+    echo -e "${YELLOW}Chọn loại kênh:${NC}"
+    for i in "${!channels[@]}"; do
+        echo -e "  $((i+1)). ${CYAN}${channels[$i]}${NC}"
+    done
+    echo -ne "${YELLOW}➤ Nhập số thứ tự [1-${#channels[@]}]:${NC} "
+    read c_idx
+    if [[ ! "$c_idx" =~ ^[0-9]+$ ]] || [ "$c_idx" -lt 1 ] || [ "$c_idx" -gt "${#channels[@]}" ]; then
+        echo -e "${RED}Lựa chọn không hợp lệ.${NC}"
+        sleep 1; return
+    fi
+    channel_type="${channels[$((c_idx-1))]}"
+
+    # 2. Chọn Account ID
+    mapfile -t accounts < <(jq -r ".channels.\"$channel_type\".accounts | keys[]" "$JSON_FILE" 2>/dev/null)
+    if [ ${#accounts[@]} -eq 0 ]; then
+        echo -e "${RED}Không tìm thấy tài khoản nào trong kênh $channel_type.${NC}"
+        sleep 2; return
+    fi
+
+    echo -e "${YELLOW}Chọn tài khoản cần sửa trong kênh $channel_type:${NC}"
+    for i in "${!accounts[@]}"; do
+        echo -e "  $((i+1)). ${WHITE}${accounts[$i]}${NC}"
+    done
+    echo -ne "${YELLOW}➤ Nhập số thứ tự [1-${#accounts[@]}]:${NC} "
+    read a_idx
+    if [[ ! "$a_idx" =~ ^[0-9]+$ ]] || [ "$a_idx" -lt 1 ] || [ "$a_idx" -gt "${#accounts[@]}" ]; then
+        echo -e "${RED}Lựa chọn không hợp lệ.${NC}"
+        sleep 1; return
+    fi
+    account_id="${accounts[$((a_idx-1))]}"
     
+    # 3. Lấy thông tin hiện tại
     curr_token=$(jq -r ".channels.\"$channel_type\".accounts.\"$account_id\".botToken // empty" "$JSON_FILE")
     curr_policy=$(jq -r ".channels.\"$channel_type\".accounts.\"$account_id\".dmPolicy // \"pairing\"" "$JSON_FILE")
     curr_allow=$(jq -r ".channels.\"$channel_type\".accounts.\"$account_id\".allowFrom | join(\",\")" "$JSON_FILE" 2>/dev/null)
@@ -190,6 +222,17 @@ edit_channel_direct() {
     jq --arg chan "$channel_type" --arg acc "$account_id" --arg token "$bot_token" --arg policy "$dm_policy" --argjson allow "$allow_ids" \
        '.channels[$chan].accounts[$acc] = {botToken: $token, dmPolicy: $policy, allowFrom: $allow}' \
        "$JSON_FILE" > "${JSON_FILE}.tmp" && mv "${JSON_FILE}.tmp" "$JSON_FILE"
+
+    # Sync to .env if editing main telegram
+    ENV_PREFIX=$(echo "${channel_type}_${account_id}" | tr '[:lower:]' '[:upper:]' | tr '-' '_')
+    if [ -f "$ENV_FILE" ]; then
+        sed -i "/^${ENV_PREFIX}_TOKEN=/d" "$ENV_FILE"
+        echo "${ENV_PREFIX}_TOKEN=\"$bot_token\"" >> "$ENV_FILE"
+        if [ "$account_id" == "default" ] && [ "$channel_type" == "telegram" ]; then
+            sed -i "s|^TELEGRAM_BOT_TOKEN=.*|TELEGRAM_BOT_TOKEN=\"$bot_token\"|" "$ENV_FILE"
+            [ "$allow_ids" != "[]" ] && sed -i "s|^TELEGRAM_ALLOW_USER_IDS_VALUE=.*|TELEGRAM_ALLOW_USER_IDS_VALUE=\"$(echo "$allow_ids" | jq -r 'join(",")')\"|" "$ENV_FILE"
+        fi
+    fi
     
     echo -e "${GREEN}✅ Đã cập nhật xong!${NC}"
     restart_gateway_sl
@@ -198,19 +241,61 @@ edit_channel_direct() {
 delete_channel_direct() {
     tput cnorm
     echo -e "\n${RED}--- XÓA KÊNH CHAT ---${NC}"
-    read -p "Nhập Channel (telegram/zalo/...): " channel_type
-    read -p "Nhập Account ID cần xóa: " account_id
     
-    if [ -z "$account_id" ] || ! jq -e ".channels.\"$channel_type\".accounts.\"$account_id\"" "$JSON_FILE" >/dev/null; then
-        echo -e "${RED}Lỗi: Không tìm thấy tài khoản.$NC"
+    # 1. Chọn Channel Type
+    mapfile -t channels < <(jq -r '.channels | keys[]' "$JSON_FILE" 2>/dev/null)
+    if [ ${#channels[@]} -eq 0 ]; then
+        echo -e "${RED}Không tìm thấy kênh nào trong cấu hình.${NC}"
         sleep 2; return
     fi
-    
-    read -p "Xác nhận xóa tài khoản $account_id? (y/n): " confirm
+
+    echo -e "${YELLOW}Chọn loại kênh:${NC}"
+    for i in "${!channels[@]}"; do
+        echo -e "  $((i+1)). ${CYAN}${channels[$i]}${NC}"
+    done
+    echo -ne "${YELLOW}➤ Nhập số thứ tự [1-${#channels[@]}]:${NC} "
+    read c_idx
+    if [[ ! "$c_idx" =~ ^[0-9]+$ ]] || [ "$c_idx" -lt 1 ] || [ "$c_idx" -gt "${#channels[@]}" ]; then
+        echo -e "${RED}Lựa chọn không hợp lệ.${NC}"
+        sleep 1; return
+    fi
+    channel_type="${channels[$((c_idx-1))]}"
+
+    # 2. Chọn Account ID
+    mapfile -t accounts < <(jq -r ".channels.\"$channel_type\".accounts | keys[]" "$JSON_FILE" 2>/dev/null)
+    if [ ${#accounts[@]} -eq 0 ]; then
+        echo -e "${RED}Không tìm thấy tài khoản nào trong kênh $channel_type.${NC}"
+        sleep 2; return
+    fi
+
+    echo -e "${YELLOW}Chọn tài khoản cần xóa trong kênh $channel_type:${NC}"
+    for i in "${!accounts[@]}"; do
+        echo -e "  $((i+1)). ${WHITE}${accounts[$i]}${NC}"
+    done
+    echo -ne "${YELLOW}➤ Nhập số thứ tự [1-${#accounts[@]}]:${NC} "
+    read a_idx
+    if [[ ! "$a_idx" =~ ^[0-9]+$ ]] || [ "$a_idx" -lt 1 ] || [ "$a_idx" -gt "${#accounts[@]}" ]; then
+        echo -e "${RED}Lựa chọn không hợp lệ.${NC}"
+        sleep 1; return
+    fi
+    account_id="${accounts[$((a_idx-1))]}"
+
+    # 3. Xác nhận và Xóa
+    echo -ne "${RED}${BOLD}➤ Xác nhận xóa tài khoản $account_id thuộc kênh $channel_type? (y/n):${NC} "
+    read confirm
     if [[ "$confirm" =~ ^[yY] ]]; then
         jq --arg chan "$channel_type" --arg acc "$account_id" 'del(.channels[$chan].accounts[$acc])' "$JSON_FILE" > "${JSON_FILE}.tmp" && mv "${JSON_FILE}.tmp" "$JSON_FILE"
+        
+        # Nếu xóa mất default telegram, xóa luôn trong .env cho sạch
+        if [ "$account_id" == "default" ] && [ "$channel_type" == "telegram" ]; then
+            sed -i "s|^TELEGRAM_BOT_TOKEN=.*|TELEGRAM_BOT_TOKEN=\"\"|" "$ENV_FILE"
+        fi
+        
         echo -e "${GREEN}✅ Đã xóa tài khoản.$NC"
         restart_gateway_sl
+    else
+        echo -e "${YELLOW}Đã hủy thao tác.${NC}"
+        sleep 1
     fi
 }
 
