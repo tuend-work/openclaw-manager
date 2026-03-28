@@ -359,16 +359,7 @@ add_agent_to_group() {
         group_id="${gids[$((g_idx-1))]}"
     fi
 
-    # 3. Chọn Agent xử lý
-    echo -e ""
-    select_agent || return
-
-    # 4. Lưu Binding
-    jq --arg aid "$selected_agent_id" --arg acc "$sel_acc" --arg gid "$group_id" \
-       '.bindings += [{"agentId": $aid, "match": {"channel": "telegram", "accountId": $acc, "chatId": $gid}}]' \
-       "$JSON_FILE" > "${JSON_FILE}.tmp" && mv "${JSON_FILE}.tmp" "$JSON_FILE"
-
-    echo -e "${GREEN}✅ Đã gán thành công: Bot $sel_acc ⇹ Group $group_id ⇹ Agent $selected_agent_id${NC}"
+    echo -e "${GREEN}✅ Đã chuẩn bị xong: Bot $sel_acc ⇹ Group $group_id${NC}"
     restart_gateway_sl
 }
 
