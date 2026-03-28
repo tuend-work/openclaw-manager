@@ -257,20 +257,33 @@ set_agent_model() {
     tput cnorm
     echo -e "\n${CYAN}--- GÁN AI MODEL CHO AGENT ---${NC}"
     if select_agent; then
-        # Lấy danh sách model từ catalog
-        mapfile -t models < <(jq -r '.models.catalog[].id' "$JSON_FILE" 2>/dev/null)
-        if [ ${#models[@]} -eq 0 ]; then
-            echo -e "${YELLOW}➤ Không tìm thấy model trong catalog. Vui lòng nhập ID thủ công:${NC} "
+        # 1. Thu thập model từ nhiều nguồn
+        echo -e "${YELLOW}⏳ Đang tải danh sách model khả dụng...${NC}"
+        
+        # Nguồn A: Từ CLI (Trích xuất ID từ cột đầu tiên)
+        mapfile -t cli_models < <(openclaw models list 2>/dev/null | grep -E '^([a-z0-9_-]+/[a-z0-9_-]+)' | awk '{print $1}')
+        
+        # Nguồn B: Từ agents.defaults.models trong JSON
+        mapfile -t default_models < <(jq -r '.agents.defaults.models | keys[]' "$JSON_FILE" 2>/dev/null)
+        
+        # Nguồn C: Từ models.catalog trong JSON
+        mapfile -t catalog_models < <(jq -r '.models.catalog[].id' "$JSON_FILE" 2>/dev/null)
+        
+        # Gộp và loại bỏ trùng lặp
+        all_models=($(printf "%s\n" "${cli_models[@]}" "${default_models[@]}" "${catalog_models[@]}" | sort -u))
+
+        if [ ${#all_models[@]} -eq 0 ]; then
+            echo -e "${YELLOW}➤ Không tìm thấy model nào trong hệ thống. Vui lòng nhập ID thủ công (VD: openrouter/auto):${NC} "
             read sel_model
         else
             echo -e "${YELLOW}Chọn AI Model cho Agent ${BOLD}${WHITE}$selected_agent_id${NC}:"
-            for i in "${!models[@]}"; do
-                echo -e "  $((i+1)). ${CYAN}${models[$i]}${NC}"
+            for i in "${!all_models[@]}"; do
+                echo -e "  $((i+1)). ${CYAN}${all_models[$i]}${NC}"
             done
-            echo -ne "${YELLOW}➤ Nhập số thứ tự [1-${#models[@]}]:${NC} "
+            echo -ne "${YELLOW}➤ Nhập số thứ tự [1-${#all_models[@]}]:${NC} "
             read m_idx
-            if [[ "$m_idx" =~ ^[0-9]+$ ]] && [ "$m_idx" -ge 1 ] && [ "$m_idx" -le "${#models[@]}" ]; then
-                sel_model="${models[$((m_idx-1))]}"
+            if [[ "$m_idx" =~ ^[0-9]+$ ]] && [ "$m_idx" -ge 1 ] && [ "$m_idx" -le "${#all_models[@]}" ]; then
+                sel_model="${all_models[$((m_idx-1))]}"
             else
                 echo -e "${RED}Lựa chọn không hợp lệ.${NC}"; return
             fi
@@ -278,6 +291,7 @@ set_agent_model() {
 
         if [ -n "$sel_model" ]; then
             # Cập nhật model.primary cho agent cụ thể trong agents.list
+            # Đồng thời đảm bảo cấu trúc model exist
             jq --arg sid "$selected_agent_id" --arg model "$sel_model" \
                '(.agents.list[] | select(.id == $sid)).model.primary = $model' \
                "$JSON_FILE" > "${JSON_FILE}.tmp" && mv "${JSON_FILE}.tmp" "$JSON_FILE"
