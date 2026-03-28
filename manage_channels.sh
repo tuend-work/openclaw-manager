@@ -332,27 +332,44 @@ select_channel_account_local() {
 }
 
 add_agent_to_group() {
-    tput cnorm
-    echo -e "\n${CYAN}--- GÁN AGENT VÀO GROUP TELEGRAM ---${NC}"
-    if select_agent && select_channel_account_local; then
-        echo -ne "${YELLOW}➤ Nhập ID Group Telegram (VD: -100123456789):${NC} "
-        read group_id
+    tput cnorm; clear; show_header "GÁN TÀI KHOẢN VÀO GROUP"
+    
+    # 1. Chọn Tài khoản Telegram
+    mapfile -t accounts < <(jq -r '.channels.telegram.accounts | keys[]' "$JSON_FILE" 2>/dev/null)
+    if [ ${#accounts[@]} -eq 0 ]; then echo -e "${RED}Lỗi: Chưa có tài khoản Telegram nào.${NC}"; sleep 1; return; fi
+    echo -e "${YELLOW}Chọn tài khoản Bot:${NC}"
+    for i in "${!accounts[@]}"; do echo -e "  $((i+1)). ${CYAN}${accounts[$i]}${NC}"; done
+    read -p "➤ Nhập số: " ac_idx; [ -z "$ac_idx" ] || [[ ! "$ac_idx" =~ ^[0-9]+$ ]] && return
+    sel_acc="${accounts[$((ac_idx-1))]}"
+
+    # 2. Chọn hoặc Nhập Group ID
+    echo -e "\n${YELLOW}Chọn Group:${NC}"
+    mapfile -t gids < <(jq -r '.channels.telegram.groups | keys[]' "$JSON_FILE" 2>/dev/null)
+    for i in "${!gids[@]}"; do echo -e "  $((i+1)). ${WHITE}${gids[$i]}${NC}"; done
+    echo -e "  $(( ${#gids[@]} + 1 )). ${GREEN}[Nhập ID Group MỚI]${NC}"
+    read -p "➤ Nhập số: " g_idx
+    if [ "$g_idx" -eq "$(( ${#gids[@]} + 1 ))" ]; then
+        echo -ne "${YELLOW}➤ Nhập ID Group mới (VD: -100...):${NC} "; read group_id
         [ -z "$group_id" ] && return
-
-        jq --arg gid "$group_id" '.channels.telegram.groupPolicy = "allowlist" | 
-            .channels.telegram.groups //= {} |
-            if .channels.telegram.groups[$gid] == null then 
-                .channels.telegram.groups[$gid] = {"requireMention": true, "allowFrom": []} 
-            else . end' \
+        # Tự động khởi tạo Group mới nếu chưa có
+        jq --arg gid "$group_id" '.channels.telegram.groupPolicy = "allowlist" | if .channels.telegram.groups[$gid] == null then .channels.telegram.groups[$gid] = {"requireMention": true, "allowFrom": []} else . end' \
            "$JSON_FILE" > "${JSON_FILE}.tmp" && mv "${JSON_FILE}.tmp" "$JSON_FILE"
-
-        jq --arg aid "$selected_agent_id" --arg acc "$sel_acc" --arg gid "$group_id" \
-           '.bindings += [{"agentId": $aid, "match": {"channel": "telegram", "accountId": $acc, "chatId": $gid}}]' \
-           "$JSON_FILE" > "${JSON_FILE}.tmp" && mv "${JSON_FILE}.tmp" "$JSON_FILE"
-
-        echo -e "${GREEN}✅ Gán thành công!${NC}"
-        restart_gateway_sl
+    else
+        [ -z "$g_idx" ] || [[ ! "$g_idx" =~ ^[0-9]+$ ]] && return
+        group_id="${gids[$((g_idx-1))]}"
     fi
+
+    # 3. Chọn Agent xử lý
+    echo -e ""
+    select_agent || return
+
+    # 4. Lưu Binding
+    jq --arg aid "$selected_agent_id" --arg acc "$sel_acc" --arg gid "$group_id" \
+       '.bindings += [{"agentId": $aid, "match": {"channel": "telegram", "accountId": $acc, "chatId": $gid}}]' \
+       "$JSON_FILE" > "${JSON_FILE}.tmp" && mv "${JSON_FILE}.tmp" "$JSON_FILE"
+
+    echo -e "${GREEN}✅ Đã gán thành công: Bot $sel_acc ⇹ Group $group_id ⇹ Agent $selected_agent_id${NC}"
+    restart_gateway_sl
 }
 
 # --- Chức năng Quản lý Group Nâng cao ---
