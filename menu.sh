@@ -47,7 +47,7 @@ execute_module() {
         4) bash "$MANAGER_DIR/manage_models.sh" ;;
         5) bash "$MANAGER_DIR/manage_logs.sh" ;;
         6) bash "$MANAGER_DIR/manage_services.sh" ;;
-        7) bash "$MANAGER_DIR/manage_tools.sh" ;;
+        7) bash "$MANAGER_DIR/manage_commands.sh" ;;
         8) bash "$MANAGER_DIR/manage_settings.sh" ;;
         9) bash "$MANAGER_DIR/manage_backup.sh" ;;
         10) exit 0 ;;
