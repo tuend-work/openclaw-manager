@@ -1,95 +1,108 @@
-# Color definitions
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-BLUE='\033[0;34m'
-NC='\033[0m'
+#!/bin/bash
 
-echo -e "${YELLOW}>>> QUẢN LÝ DOMAIN & SSL (NGINX PROXY) <<<${NC}"
-echo -e "${BLUE}------------------------------------------------${NC}"
+# =========================================================
+# OPENCLAW MANAGER - DOMAIN & SSL MANAGEMENT
+# =========================================================
 
-# 1. Nhập thông tin (Hỗ trợ tham số dòng lệnh)
-if [ -n "$1" ]; then
-    domain="$1"
-    port="${2:-18789}"
-    AUTO_MODE=1
-    echo -e "${YELLOW}Chạy tự động với domain: $domain (Port: $port)${NC}"
-else
-    AUTO_MODE=0
+REAL_PATH=$(readlink -f "${BASH_SOURCE[0]}")
+MANAGER_DIR="$( cd "$( dirname "$REAL_PATH" )" &> /dev/null && pwd )"
+
+# UI Helper inclusion
+source "$MANAGER_DIR/scripts/ui_helper.sh"
+
+setup_domain_ssl() {
+    tput cnorm
+    echo -e "${YELLOW}>>> CẤU HÌNH DOMAIN & SSL (NGINX PROXY) <<<${NC}"
+    echo -e "${BLUE}------------------------------------------------${NC}"
+    
     echo -n "Nhập domain mới (vd: ai.example.com): "
     read domain
+    if [[ -z "$domain" ]]; then echo -e "${RED}Lỗi: Domain trống!${NC}"; sleep 2; return; fi
 
-    if [[ -z "$domain" ]]; then
-        echo -e "${RED}Lỗi: Domain không được để trống!${NC}"
-        sleep 2; exit 1
-    fi
-
-    # Nhập Port OpenClaw (Mặc định thường là 18789)
     echo -n "Nhập Port của OpenClaw (Mặc định: 18789): "
     read port
     port=${port:-18789}
-fi
 
-# 2. Check Valid Domain (Sơ bộ)
-if [[ ! $domain =~ ^[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$ ]]; then
-    echo -e "${RED}Lỗi: Định dạng domain không hợp lệ!${NC}"
-    sleep 2; exit 1
-fi
+    if [[ ! $domain =~ ^[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$ ]]; then echo -e "${RED}Domain không hợp lệ!${NC}"; sleep 2; return; fi
 
-# 3. Đổi hostname hệ thống
-echo -e "${YELLOW}[1/4] Đang đổi hostname hệ thống thành $domain...${NC}"
-hostnamectl set-hostname "$domain"
-echo "127.0.0.1 $domain" >> /etc/hosts
+    echo -e "${YELLOW}[1/4] Đang đổi hostname thành $domain...${NC}"
+    hostnamectl set-hostname "$domain"
+    echo "127.0.0.1 $domain" >> /etc/hosts
 
-# 4. Tạo cấu hình Nginx Proxy (HTTP trước để Certbot verify)
-echo -e "${YELLOW}[2/4] Đang tạo cấu hình Nginx Proxy cho port $port...${NC}"
-CONF_FILE="/etc/nginx/sites-available/$domain"
-
-cat > "$CONF_FILE" <<EOF
+    echo -e "${YELLOW}[2/4] Đang tạo cấu hình Nginx cho port $port...${NC}"
+    CONF_FILE="/etc/nginx/sites-available/$domain"
+    cat > "$CONF_FILE" <<EOF
 server {
     listen 80;
     server_name $domain;
-
     location / {
         proxy_pass http://127.0.0.1:$port;
         proxy_set_header Host \$host;
         proxy_set_header X-Real-IP \$remote_addr;
         proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto \$scheme;
-        
-        # Hỗ trợ Websocket (Cần cho một số AI Channels)
         proxy_http_version 1.1;
         proxy_set_header Upgrade \$http_upgrade;
         proxy_set_header Connection "upgrade";
     }
 }
 EOF
+    ln -sf "$CONF_FILE" "/etc/nginx/sites-enabled/"
+    nginx -t && systemctl restart nginx
 
-ln -sf "$CONF_FILE" "/etc/nginx/sites-enabled/"
-nginx -t && systemctl restart nginx
+    echo -e "${YELLOW}[3/4] Đang cài đặt SSL (Let's Encrypt)...${NC}"
+    certbot --nginx -d "$domain" --non-interactive --agree-tos --register-unsafely-without-email
 
-# 5. Cài đặt SSL Let's Encrypt
-echo -e "${YELLOW}[3/4] Đang tiến hành cài đặt SSL (Let's Encrypt)...${NC}"
-echo -e "${BLUE}Lưu ý: Domain phải được trỏ IP về VPS này trước khi thực hiện.${NC}"
+    if [ $? -eq 0 ]; then
+        echo -e "${GREEN}[4/4] Cài đặt SSL thành công!${NC}"
+    else
+        echo -e "${RED}Lỗi SSL. Kiểm tra DNS của $domain.${NC}"
+    fi
 
-certbot --nginx -d "$domain" --non-interactive --agree-tos --register-unsafely-without-email
+    if command -v openclaw &> /dev/null; then
+        openclaw config set gateway.controlUi.allowedOrigins "[\"https://$domain\"]" > /dev/null 2>&1
+        systemctl restart openclaw > /dev/null 2>&1
+    fi
+    pause_menu
+}
 
-if [ $? -eq 0 ]; then
-    echo -e "${GREEN}[4/4] Cài đặt SSL thành công!${NC}"
-    echo -e "${GREEN}Domain: https://$domain${NC}"
-else
-    echo -e "${RED}Lỗi: Không thể cài đặt SSL. Hãy kiểm tra lại DNS của domain.${NC}"
-fi
+options=("Cài đặt bài bản Domain & SSL" "Kiểm tra cấu hình Nginx" "Quay lại Menu chính")
+current=0
 
-# 6. Cập nhật OpenClaw Config
-echo -e "${YELLOW}>> Đang cập nhật Allowed Origins cho OpenClaw Dashboard...${NC}"
-if command -v openclaw &> /dev/null; then
-    openclaw config set gateway.controlUi.allowedOrigins "[\"https://$domain\"]" > /dev/null 2>&1
-    systemctl restart openclaw > /dev/null 2>&1
-    echo -e "${GREEN}Đã cấu hình OpenClaw nhận diện Domain mới!${NC}"
-fi
+while true; do
+    gather_system_stats
+    clear
+    show_header "QUẢN LÝ DOMAIN & SSL"
+    echo -e " ${BOLD}${YELLOW}Sử dụng [↑/↓] hoặc phím số [1-2, 0]:${NC}"
+    echo ""
 
-echo -e "${BLUE}------------------------------------------------${NC}"
-if [ "$AUTO_MODE" -ne 1 ]; then
-    read -p "Nhấn Enter để quay lại menu..."
-fi
+    for i in "${!options[@]}"; do
+        display_num=$((i + 1))
+        [ $display_num -eq 3 ] && display_num=0
+        if [ "$i" -eq "$current" ]; then
+            echo -e "  ${BG_CYAN}${BOLD}${WHITE} ➜ $display_num. ${options[$i]} ${NC}"
+        else
+            echo -e "     ${WHITE}$display_num. ${options[$i]}${NC}"
+        fi
+    done
+    echo ""
+    echo -e "${CYAN}────────────────────────────────────────────────${NC}"
+
+    tput civis
+    if read -rsn1 -t 3 key; then
+        case "$key" in
+            $'\x1b')
+                read -rsn2 -t 0.1 next_key
+                case "$next_key" in
+                    "[A") current=$(( (current - 1 + ${#options[@]}) % ${#options[@]} )) ;;
+                    "[B") current=$(( (current + 1) % ${#options[@]} )) ;;
+                esac ;;
+            1) setup_domain_ssl ;;
+            2) nginx -t && pause_menu ;;
+            0|3) exit 0 ;;
+            "") [ $current -eq 0 ] && setup_domain_ssl
+                [ $current -eq 1 ] && nginx -t && pause_menu
+                [ $current -eq 2 ] && exit 0 ;;
+        esac
+    fi
+done

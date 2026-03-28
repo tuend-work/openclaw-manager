@@ -1,179 +1,94 @@
 #!/bin/bash
 
-# Path to the manager directory (automatically detect real script directory, handles symlinks)
+# =========================================================
+# OPENCLAW MANAGER - MAIN MENU
+# =========================================================
+
 REAL_PATH=$(readlink -f "${BASH_SOURCE[0]}")
 MANAGER_DIR="$( cd "$( dirname "$REAL_PATH" )" &> /dev/null && pwd )"
 
+# UI Helper inclusion
+source "$MANAGER_DIR/scripts/ui_helper.sh"
 
-# Modern Color Palette
-RED='\033[0;91m'
-GREEN='\033[0;92m'
-YELLOW='\033[0;93m'
-BLUE='\033[0;94m'
-MAGENTA='\033[0;95m'
-CYAN='\033[0;96m'
-WHITE='\033[0;97m'
-GRAY='\033[0;90m'
-BOLD='\033[1m'
-NC='\033[0m'
-BG_CYAN='\033[46m'
-BG_BLACK='\033[40m'
-
-# Check for root privileges
+# Check for root
 if [ "$EUID" -ne 0 ]; then
     echo -e "${RED}${BOLD}➤ Lỗi: Vui lòng chạy lệnh này với quyền root (sudo ocm)${NC}"
     exit 1
 fi
 
-# Caching system info to prevent lag
 IP_ADDR=$(hostname -I | awk '{print $1}')
 OPENCLAW_VER=$(openclaw --version 2>/dev/null | awk '{print $2}' || echo "N/A")
 
-# Load variables from OpenClaw .env
-DOMAIN_NAME=$(hostname)
-GATEWAY_TOKEN="N/A"
-if [ -f "/root/.openclaw/.env" ]; then
-    DOMAIN_NAME=$(grep "^DOMAIN_NAME=" /root/.openclaw/.env | cut -d'=' -f2 | tr -d '"'\'' ')
-    GATEWAY_TOKEN=$(grep "^OPENCLAW_GATEWAY_TOKEN=" /root/.openclaw/.env | cut -d'=' -f2 | tr -d '"'\'' ')
-fi
-[ -z "$DOMAIN_NAME" ] && DOMAIN_NAME=$(hostname)
-
 options=(
-    "OpenClaw Command (Lệnh điều khiển nhanh)"
-    "Domain & SSL (Quản lý Tên miền & SSL)"
-    "AI Agents (Quản lý AI Agents)"
-    "Channels (Quản lý Kênh Chat)"
-    "Models (Quản lý AI Models)"
-    "System Logs (Nhật ký Hệ thống)"
-    "Services (Điều khiển Dịch vụ)"
+    "OpenClaw Quick (Lệnh nhanh)"
+    "Domain & SSL (Tên miền)"
+    "AI Agents (Agents)"
+    "Channels (Kênh Chat)"
+    "Models (AI Models)"
+    "System Logs (Nhật ký)"
+    "Services (Dịch vụ)"
     "Tools (Công cụ)"
-    "Settings (Cấu hình OpenClaw)"
-    "Backup & Restore (Sao lưu & Khôi phục)"
+    "Settings (Cấu hình)"
+    "Backup & Restore (Sao lưu)"
     "Exit (Thoát)"
 )
 
 current=0
-
-# Clean up on exit (restore cursor)
 trap "tput cnorm; exit" SIGINT SIGTERM EXIT
 
-show_menu() {
-    # Move cursor to top-left instead of clear to reduce flicker
-    printf "\033[H"
-    echo -e "${CYAN}┌──────────────────────────────────────────────┐${NC}"
-    echo -e "${CYAN}│${NC}       ${BOLD}${WHITE}WELCOME TO OPEN-CLAW MANAGER${NC}       ${CYAN}│${NC}"
-    echo -e "${CYAN}└──────────────────────────────────────────────┘${NC}"
-    echo -e " ${WHITE}●${NC} CPU: ${YELLOW}${SYS_CPU}${NC} | RAM: ${YELLOW}${SYS_RAM}${NC}"
-    echo -e " ${WHITE}●${NC} Disk: ${YELLOW}${SYS_DISK}${NC} | Uptime: ${YELLOW}${SYS_UPTIME}${NC}"
-    echo -e " ${WHITE}●${NC} Net: ${GREEN}↓ ${SYS_NET_IN} MB/s${NC} | ${RED}↑ ${SYS_NET_OUT} MB/s${NC}"
-    echo -e "${CYAN}------------------------------------------------${NC}"
-    echo -e " ${WHITE}●${NC} Dashboard: ${CYAN}https://${DOMAIN_NAME}/#token=${GATEWAY_TOKEN}${NC}"
-    echo -e " ${WHITE}●${NC} OC: ${MAGENTA}${OPENCLAW_VER}${NC} | OCM: ${MAGENTA}v2.1.0${NC} | IP: ${BLUE}${IP_ADDR}${NC}"
-    echo -e "${CYAN}------------------------------------------------${NC}"
-    echo -e " ${BOLD}${YELLOW}Sử dụng [↑/↓] hoặc phím số [1-10]:${NC}"
-    echo ""
-
-    for i in "${!options[@]}"; do
-        display_num=$((i + 1))
-        [ $display_num -eq 11 ] && display_num=0
-        
-        # Colorize the Vietnamese description in parentheses
-        item_text="${options[$i]}"
-        if [[ "$item_text" =~ (.*)(\(.*\))(.*) ]]; then
-            colored_text="${BASH_REMATCH[1]}${GRAY}${BASH_REMATCH[2]}${NC}${BASH_REMATCH[3]}"
-        else
-            colored_text="$item_text"
-        fi
-
-        if [ "$i" -eq "$current" ]; then
-            echo -e "  ${BG_CYAN}${BOLD}${WHITE} ➜ $display_num. ${colored_text} ${NC}"
-        else
-            echo -e "     ${WHITE}$display_num. ${colored_text}               ${NC}" 
-        fi
-    done
-    echo ""
-    echo -e "${CYAN}────────────────────────────────────────────────${NC}"
-    echo -e " ${WHITE}Shortcut: [Enter]: Chọn | [0]: Thoát${NC}"
-    echo -e "${CYAN}────────────────────────────────────────────────${NC}"
-}
-
-# Function to execute module based on index
 execute_module() {
     local index=$1
     tput cnorm
     case $index in
-        0) bash "$MANAGER_DIR/manage_openclaw.sh" ;;
+        0) bash "$MANAGER_DIR/manage_commands.sh" ;;
         1) bash "$MANAGER_DIR/manage_domain.sh" ;;
         2) bash "$MANAGER_DIR/manage_ai.sh" ;;
         3) bash "$MANAGER_DIR/manage_channels.sh" ;;
         4) bash "$MANAGER_DIR/manage_models.sh" ;;
         5) bash "$MANAGER_DIR/manage_logs.sh" ;;
         6) bash "$MANAGER_DIR/manage_services.sh" ;;
-        7) bash "$MANAGER_DIR/manage_commands.sh" ;;
+        7) bash "$MANAGER_DIR/manage_tools.sh" ;;
         8) bash "$MANAGER_DIR/manage_settings.sh" ;;
         9) bash "$MANAGER_DIR/manage_backup.sh" ;;
         10) exit 0 ;;
     esac
     tput civis
-    clear
 }
-
-gather_system_stats() {
-    SYS_RAM=$(free -m | awk 'NR==2{printf "%.1fGB / %.1fGB", $3/1024, $2/1024}')
-    SYS_DISK=$(df -h / | awk '$NF=="/"{printf "%s / %s", $3, $2}')
-    SYS_UPTIME=$(uptime -p | sed 's/^up //')
-    local cpu1=($(awk '/^cpu / {print $2+$3+$4+$6+$7+$8+$9, $5}' /proc/stat))
-    local net1=($(awk 'NR>2 {rx+=$2; tx+=$10} END {print rx, tx}' /proc/net/dev))
-    sleep 0.2
-    local cpu2=($(awk '/^cpu / {print $2+$3+$4+$6+$7+$8+$9, $5}' /proc/stat))
-    local net2=($(awk 'NR>2 {rx+=$2; tx+=$10} END {print rx, tx}' /proc/net/dev))
-    local active=$((cpu2[0] - cpu1[0]))
-    local idle=$((cpu2[1] - cpu1[1]))
-    local total=$((active + idle + 1))
-    SYS_CPU=$(awk -v act="$active" -v tot="$total" -v cores="$(nproc 2>/dev/null || echo 1)" 'BEGIN {printf "%.1f%% (%s Core)", act * 100 / tot, cores}')
-    SYS_NET_IN=$(awk -v r1="${net1[0]:-0}" -v r2="${net2[0]:-0}" 'BEGIN {printf "%.2f", (r2 - r1) * 5 / 1048576}')
-    SYS_NET_OUT=$(awk -v t1="${net1[1]:-0}" -v t2="${net2[1]:-0}" 'BEGIN {printf "%.2f", (t2 - t1) * 5 / 1048576}')
-}
-
-# Hide cursor
-tput civis
-clear # Initial clear
-gather_system_stats
 
 while true; do
-    show_menu
-    if read -rsn1 -t 2 key; then
+    gather_system_stats
+    clear
+    show_header "WELCOME TO OPEN-CLAW MANAGER"
+    echo -e " ${WHITE}●${NC} OC: ${MAGENTA}${OPENCLAW_VER}${NC} | OCM: ${MAGENTA}v2.2.0${NC} | IP: ${BLUE}${IP_ADDR}${NC}"
+    echo -e "${CYAN}------------------------------------------------${NC}"
+    echo -e " ${BOLD}${YELLOW}Sử dụng [↑/↓] hoặc phím số [1-9, 0]:${NC}"
+    echo ""
+
+    for i in "${!options[@]}"; do
+        display_num=$((i + 1))
+        [ $display_num -eq 11 ] && display_num=0
+        if [ "$i" -eq "$current" ]; then
+            echo -e "  ${BG_CYAN}${BOLD}${WHITE} ➜ $display_num. ${options[$i]} ${NC}"
+        else
+            echo -e "     ${WHITE}$display_num. ${options[$i]}${NC}"
+        fi
+    done
+    echo ""
+    echo -e "${CYAN}────────────────────────────────────────────────${NC}"
+    echo -e " ${WHITE}Enter: Chọn | Mũi tên: Di chuyển | 0: Thoát${NC}"
+
+    tput civis
+    if read -rsn1 -t 3 key; then
         case "$key" in
-            # Arrow keys starting with escape
             $'\x1b')
                 read -rsn2 -t 0.1 next_key
                 case "$next_key" in
-                    "[A") # Up arrow
-                        current=$(( (current - 1 + ${#options[@]}) % ${#options[@]} ))
-                        ;;
-                    "[B") # Down arrow
-                        current=$(( (current + 1) % ${#options[@]} ))
-                        ;;
-                esac
-                ;;
-            [1-9]) # Number keys 1-9
-                execute_module $((key - 1))
-                show_menu
-                gather_system_stats
-                ;;
-            0) # Number key 0 (Exit or 10)
-                # If there are 11 items, 0 could be index 10
-                execute_module 10
-                ;;
-            "") # Enter key
-                execute_module $current
-                show_menu
-                gather_system_stats
-                ;;
+                    "[A") current=$(( (current - 1 + ${#options[@]}) % ${#options[@]} )) ;;
+                    "[B") current=$(( (current + 1) % ${#options[@]} )) ;;
+                esac ;;
+            [1-9]) execute_module $((key - 1)) ;;
+            0) exit 0 ;;
+            "") execute_module $current ;;
         esac
-    else
-        gather_system_stats
     fi
 done
-
-
