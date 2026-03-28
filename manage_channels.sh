@@ -301,20 +301,74 @@ delete_channel_direct() {
 
 ensure_json_structure
 
+# --- Helpers cho Gán Agent vào Group ---
+select_agent() {
+    mapfile -t agent_ids < <(jq -r '.agents.list[].id' "$JSON_FILE" 2>/dev/null)
+    if [ ${#agent_ids[@]} -eq 0 ]; then echo -e "${RED}Không tìm thấy Agent nào.${NC}"; return 1; fi
+    echo -e "${YELLOW}Chọn Agent:${NC}"
+    for i in "${!agent_ids[@]}"; do echo -e "  $((i+1)). ${CYAN}${agent_ids[$i]}${NC}"; done
+    echo -ne "${YELLOW}➤ Nhập STT: ${NC}"; read a_idx
+    [ -z "$a_idx" ] || [[ ! "$a_idx" =~ ^[0-9]+$ ]] && return 1
+    selected_agent_id="${agent_ids[$((a_idx-1))]}"
+    return 0
+}
+
+select_channel_account_local() {
+    mapfile -t channels < <(jq -r '.channels | keys[]' "$JSON_FILE" 2>/dev/null)
+    [ ${#channels[@]} -eq 0 ] && return 1
+    echo -e "${YELLOW}Chọn loại kênh:${NC}"
+    for i in "${!channels[@]}"; do echo -e "  $((i+1)). ${CYAN}${channels[$i]}${NC}"; done
+    read -p "➤ Nhập số: " c_idx
+    [ -z "$c_idx" ] || [[ ! "$c_idx" =~ ^[0-9]+$ ]] && return 1
+    sel_chan="${channels[$((c_idx-1))]}"
+    mapfile -t accounts < <(jq -r ".channels.\"$sel_chan\".accounts | keys[]" "$JSON_FILE" 2>/dev/null)
+    [ ${#accounts[@]} -eq 0 ] && return 1
+    echo -e "${YELLOW}Chọn tài khoản:${NC}"
+    for i in "${!accounts[@]}"; do echo -e "  $((i+1)). ${WHITE}${accounts[$i]}${NC}"; done
+    read -p "➤ Nhập số: " ac_idx
+    [ -z "$ac_idx" ] || [[ ! "$ac_idx" =~ ^[0-9]+$ ]] && return 1
+    sel_acc="${accounts[$((ac_idx-1))]}"
+    return 0
+}
+
+add_agent_to_group() {
+    tput cnorm
+    echo -e "\n${CYAN}--- GÁN AGENT VÀO GROUP TELEGRAM ---${NC}"
+    if select_agent && select_channel_account_local; then
+        echo -ne "${YELLOW}➤ Nhập ID Group Telegram (VD: -100123456789):${NC} "
+        read group_id
+        [ -z "$group_id" ] && return
+
+        jq --arg gid "$group_id" '.channels.telegram.groupPolicy = "allowlist" | 
+            .channels.telegram.groups //= {} |
+            if .channels.telegram.groups[$gid] == null then 
+                .channels.telegram.groups[$gid] = {"requireMention": true, "allowFrom": []} 
+            else . end' \
+           "$JSON_FILE" > "${JSON_FILE}.tmp" && mv "${JSON_FILE}.tmp" "$JSON_FILE"
+
+        jq --arg aid "$selected_agent_id" --arg acc "$sel_acc" --arg gid "$group_id" \
+           '.bindings += [{"agentId": $aid, "match": {"channel": "telegram", "accountId": $acc, "chatId": $gid}}]' \
+           "$JSON_FILE" > "${JSON_FILE}.tmp" && mv "${JSON_FILE}.tmp" "$JSON_FILE"
+
+        echo -e "${GREEN}✅ Gán thành công!${NC}"
+        restart_gateway_sl
+    fi
+}
+
 # Main Menu Logic
-options=("Danh sách kênh (List)" "Thêm kênh chat (Add)" "Sửa kênh chat (Edit)" "Xóa kênh chat (Delete)" "Quay lại Menu chính")
+options=("Danh sách kênh (List)" "Thêm kênh chat (Add)" "Sửa kênh chat (Edit)" "Xóa kênh chat (Delete)" "Gán Agent vào Group (Telegram)" "Quay lại Menu chính")
 current=0
 
 while true; do
     gather_system_stats
     clear
     show_header "QUẢN LÝ KÊNH CHAT (CHANNELS)"
-    echo -e " ${BOLD}${YELLOW}Sử dụng [↑/↓] hoặc phím số [1-4, 0]:${NC}"
+    echo -e " ${BOLD}${YELLOW}Sử dụng [↑/↓] hoặc phím số [1-5, 0]:${NC}"
     echo ""
 
     for i in "${!options[@]}"; do
         display_num=$((i + 1))
-        [ $display_num -eq 5 ] && display_num=0
+        [ $display_num -eq 6 ] && display_num=0
         if [ "$i" -eq "$current" ]; then
             echo -e "  ${BG_CYAN}${BOLD}${WHITE} ➜ $display_num. ${options[$i]} ${NC}"
         else
@@ -337,14 +391,16 @@ while true; do
             2) add_channel_enhanced ;;
             3) edit_channel_direct ;;
             4) delete_channel_direct ;;
-            0|5) exit 0 ;;
+            5) add_agent_to_group ;;
+            0|6) exit 0 ;;
             "") 
                 case $current in
                     0) list_channels ;;
                     1) add_channel_enhanced ;;
                     2) edit_channel_direct ;;
                     3) delete_channel_direct ;;
-                    4) exit 0 ;;
+                    4) add_agent_to_group ;;
+                    5) exit 0 ;;
                 esac ;;
         esac
     fi
