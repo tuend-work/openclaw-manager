@@ -18,7 +18,7 @@ fi
 
 IP_ADDR=$(hostname -I | awk '{print $1}')
 OPENCLAW_VER=$(openclaw --version 2>/dev/null | awk '{print $2}' || echo "N/A")
-
+OCM_VER="v3.0.1"
 options=(
     "OpenClaw Quick (Lệnh nhanh)"
     "Domain & SSL (Tên miền)"
@@ -59,7 +59,7 @@ while true; do
     gather_system_stats
     clear
     show_header "WELCOME TO OPEN-CLAW MANAGER"
-    echo -e " ${WHITE}●${NC} OC: ${MAGENTA}${OPENCLAW_VER}${NC} | OCM: ${MAGENTA}v2.2.0${NC} | IP: ${BLUE}${IP_ADDR}${NC}"
+    echo -e " ${WHITE}●${NC} OC: ${MAGENTA}${OPENCLAW_VER}${NC} | OCM: ${MAGENTA}${OCM_VER}${NC} | IP: ${BLUE}${IP_ADDR}${NC}"
     echo -e "${CYAN}------------------------------------------------${NC}"
     echo -e " ${BOLD}${YELLOW}Sử dụng [↑/↓] hoặc phím số [1-9, 0]:${NC}"
     echo ""
