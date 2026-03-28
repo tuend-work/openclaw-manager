@@ -50,18 +50,26 @@
                 }
             },
             "workspace": "/root/.openclaw/workspace"
-        }
+        },
+        "list": [
+            { "id": "main", "workspace": "/root/.openclaw/workspace-main" }
+        ]
     },
+    "bindings": [
+        { "agentId": "main", "match": { "channel": "telegram", "accountId": "default" } }
+    ],
     "channels": {
         "telegram": {
             "enabled": true,
-            "dmPolicy": "pairing",
-            "botToken": "${TELEGRAM_BOT_TOKEN}",
-            "groupPolicy": "open",
-            "streaming": "partial",
-            "allowFrom": [
-                "${TELEGRAM_ALLOW_USER_IDS_VALUE}"
-            ]
+            "accounts": {
+                "default": {
+                    "botToken": "${TELEGRAM_BOT_TOKEN}",
+                    "dmPolicy": "pairing",
+                    "allowFrom": [
+                        "${TELEGRAM_ALLOW_USER_IDS_VALUE}"
+                    ]
+                }
+            }
         }
     },
     "session": {
