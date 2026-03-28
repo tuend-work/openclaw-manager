@@ -32,7 +32,7 @@ restart_gateway_sl() {
 ensure_json_structure() {
     if [ ! -f "$JSON_FILE" ]; then
         mkdir -p "$HOME/.openclaw"
-        [ -f "$MANAGER_DIR/openclaw-templates/openclaw.json" ] && cp "$MANAGER_DIR/openclaw-templates/openclaw.json" "$JSON_FILE" || echo "{ \"channels\": { \"telegram\": { \"accounts\": {} } } }" > "$JSON_FILE"
+        [ -f "$MANAGER_DIR/openclaw-templates/openclaw.json" ] && cp "$MANAGER_DIR/openclaw-templates/openclaw.json" "$JSON_FILE" || echo "{ \"channels\": { \"telegram\": { \"enabled\": true, \"accounts\": {} } } }" > "$JSON_FILE"
     fi
     jq -e '.channels.telegram.accounts' "$JSON_FILE" >/dev/null 2>&1 || {
         OLD_TOKEN=$(jq -r '.channels.telegram.botToken // empty' "$JSON_FILE")
@@ -50,7 +50,7 @@ detect_telegram_id() {
     echo -e "${MAGENTA}------------------------------------------------${NC}"
     echo -e "${CYAN}⏳ Đang chờ tin nhắn từ bạn (Timeout 60s)...${NC}"
     
-    local found_id=""
+    found_id=""
     for i in {1..12}; do
         local response=$(curl -s --max-time 5 "https://api.telegram.org/bot${token}/getUpdates")
         found_id=$(echo "$response" | jq -r '.result[0].message.from.id // empty' 2>/dev/null)
@@ -123,7 +123,11 @@ add_channel_enhanced() {
         if [ "$user_ids" == "[]" ] && [ "$dm_policy" == "allowlist" ]; then
             echo -ne "${YELLOW}➤ Nhập danh sách ID thủ công (cách nhau bởi dấu phẩy):${NC} "
             read manual_ids
-            user_ids=$(echo "[$manual_ids]" | jq -c 'split(",") | map(select(length > 0))')
+            if [ -z "$manual_ids" ]; then
+                user_ids="[]"
+            else
+                user_ids=$(jq -nc --arg ids "$manual_ids" '$ids | split(",") | map(select(length > 0))')
+            fi
         fi
     fi
 
@@ -135,11 +139,8 @@ add_channel_enhanced() {
     # Sync to .env (Form: [CHANNEL]_[ACCOUNT]_TOKEN)
     ENV_PREFIX=$(echo "${channel_type}_${account_id}" | tr '[:lower:]' '[:upper:]' | tr '-' '_')
     if [ -f "$ENV_FILE" ]; then
-        # Remove old if exists
         sed -i "/^${ENV_PREFIX}_TOKEN=/d" "$ENV_FILE"
         echo "${ENV_PREFIX}_TOKEN=\"$bot_token\"" >> "$ENV_FILE"
-        
-        # Special sync for standard default telegram
         if [ "$account_id" == "default" ] && [ "$channel_type" == "telegram" ]; then
             sed -i "s|^TELEGRAM_BOT_TOKEN=.*|TELEGRAM_BOT_TOKEN=\"$bot_token\"|" "$ENV_FILE"
             [ "$user_ids" != "[]" ] && sed -i "s|^TELEGRAM_ALLOW_USER_IDS_VALUE=.*|TELEGRAM_ALLOW_USER_IDS_VALUE=\"$(echo "$user_ids" | jq -r 'join(",")')\"|" "$ENV_FILE"
@@ -162,12 +163,32 @@ edit_channel_direct() {
     fi
     
     curr_token=$(jq -r ".channels.\"$channel_type\".accounts.\"$account_id\".botToken // empty" "$JSON_FILE")
+    curr_policy=$(jq -r ".channels.\"$channel_type\".accounts.\"$account_id\".dmPolicy // \"pairing\"" "$JSON_FILE")
+    curr_allow=$(jq -r ".channels.\"$channel_type\".accounts.\"$account_id\".allowFrom | join(\",\")" "$JSON_FILE" 2>/dev/null)
+
     echo -ne "${YELLOW}➤ Token mới [Enter giữ cũ]:${NC} "
     read bot_token
     bot_token=${bot_token:-$curr_token}
     
-    jq --arg chan "$channel_type" --arg acc "$account_id" --arg token "$bot_token" \
-       '.channels[$chan].accounts[$acc].botToken = $token' \
+    echo -ne "${YELLOW}➤ dmPolicy mới (1. pairing | 2. allowlist | 3. open) [$curr_policy]:${NC} "
+    read pol_choice
+    case $pol_choice in
+        1) dm_policy="pairing" ;;
+        2) dm_policy="allowlist" ;;
+        3) dm_policy="open" ;;
+        *) dm_policy="$curr_policy" ;;
+    esac
+    
+    echo -ne "${YELLOW}➤ AllowFrom mới (ID cách nhau dấu phẩy) [$curr_allow]:${NC} "
+    read raw_ids
+    if [ -z "$raw_ids" ]; then
+        allow_ids=$(jq -c ".channels.\"$channel_type\".accounts.\"$account_id\".allowFrom // []" "$JSON_FILE")
+    else
+        allow_ids=$(jq -nc --arg ids "$raw_ids" '$ids | split(",") | map(select(length > 0))')
+    fi
+
+    jq --arg chan "$channel_type" --arg acc "$account_id" --arg token "$bot_token" --arg policy "$dm_policy" --argjson allow "$allow_ids" \
+       '.channels[$chan].accounts[$acc] = {botToken: $token, dmPolicy: $policy, allowFrom: $allow}' \
        "$JSON_FILE" > "${JSON_FILE}.tmp" && mv "${JSON_FILE}.tmp" "$JSON_FILE"
     
     echo -e "${GREEN}✅ Đã cập nhật xong!${NC}"
