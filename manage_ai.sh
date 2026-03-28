@@ -311,10 +311,11 @@ add_agent_to_group() {
             read group_id
             [ -z "$group_id" ] && return
 
-            # 1. Cấu hình Tài khoản cụ thể (Policy & AllowList)
+            # 1. Cấu hình Tài khoản cụ thể (Dựa trên Doctor warnings: Chat ID vào .groups)
             jq --arg acc "$sel_acc" --arg gid "$group_id" \
                '.channels.telegram.accounts[$acc].groupPolicy = "allowlist" | 
-                .channels.telegram.accounts[$acc].groupAllowFrom |= (. // [] | if contains([$gid]) then . else . + [$gid] end)' \
+                .channels.telegram.accounts[$acc].groups |= (. // [] | if contains([$gid]) then . else . + [$gid] end) |
+                .channels.telegram.accounts[$acc].groupAllowFrom |= (. // [])' \
                "$JSON_FILE" > "${JSON_FILE}.tmp" && mv "${JSON_FILE}.tmp" "$JSON_FILE"
 
             # 2. Tạo Binding cho Group gắn với tài khoản này
