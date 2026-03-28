@@ -19,8 +19,8 @@ restart_gateway_sm() {
 
 options=(
     "Danh sách Models (List)"
+    "Thêm Tài khoản / API Key mới"
     "Trạng thái Models (Status)"
-    "Quét Catalog mới (Scan)"
     "GET FREE MODEL (Auto Search)"
     "Thiết lập Model chính (Set Primary)"
     "Thiết lập Image Model (Image)"
@@ -33,15 +33,15 @@ current=0
 
 execute_action() {
     local index=$1
-    if [ $index -eq 8 ]; then exit 0; fi 
+    if [ $index -eq 9 ]; then exit 0; fi 
     
     echo -e "${CYAN}────────────────────────────────────────────────${NC}"
     tput cnorm
     
     case $index in
         0) openclaw models list ;;
-        1) openclaw models status --probe ;;
-        2) openclaw models scan ;;
+        1) openclaw models auth login ;;
+        2) openclaw models status --probe ;;
         3) [ -f "$MANAGER_DIR/scripts/get_free_model.sh" ] && bash "$MANAGER_DIR/scripts/get_free_model.sh" ;;
         4) echo -n "Nhập Model ID: "; read val; [ -n "$val" ] && openclaw models set "$val" && restart_gateway_sm ;;
         5) echo -n "Nhập Image Model ID: "; read val; [ -n "$val" ] && openclaw models set-image "$val" && restart_gateway_sm ;;
@@ -55,12 +55,12 @@ while true; do
     gather_system_stats
     clear
     show_header "QUẢN LÝ AI MODELS (MODELS)"
-    echo -e " ${BOLD}${YELLOW}Sử dụng [↑/↓] hoặc phím số [1-8, 0]:${NC}"
+    echo -e " ${BOLD}${YELLOW}Sử dụng [↑/↓] hoặc phím số [1-9, 0]:${NC}"
     echo ""
 
     for i in "${!options[@]}"; do
         display_num=$((i + 1))
-        [ $display_num -eq 9 ] && display_num=0
+        [ $display_num -eq 10 ] && display_num=0
         if [ "$i" -eq "$current" ]; then
             echo -e "  ${BG_CYAN}${BOLD}${WHITE} ➜ $display_num. ${options[$i]} ${NC}"
         else
@@ -79,7 +79,7 @@ while true; do
                     "[A") current=$(( (current - 1 + ${#options[@]}) % ${#options[@]} )) ;;
                     "[B") current=$(( (current + 1) % ${#options[@]} )) ;;
                 esac ;;
-            [1-8]) execute_action $((key - 1)) ;;
+            [1-9]) execute_action $((key - 1)) ;;
             0) exit 0 ;;
             "") execute_action $current ;;
         esac

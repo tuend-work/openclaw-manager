@@ -25,7 +25,6 @@ options=(
     "Channels (Kênh Chat)"
     "Models (AI Models)"
     "System Logs (Nhật ký)"
-    "Services (Dịch vụ)"
     "Tools (Công cụ)"
     "Settings (Cấu hình)"
     "Backup & Restore (Sao lưu)"
@@ -44,11 +43,10 @@ execute_module() {
         2) bash "$MANAGER_DIR/manage_channels.sh" ;;
         3) bash "$MANAGER_DIR/manage_models.sh" ;;
         4) bash "$MANAGER_DIR/manage_logs.sh" ;;
-        6) bash "$MANAGER_DIR/manage_services.sh" ;;
-        7) bash "$MANAGER_DIR/manage_tools.sh" ;;
-        8) bash "$MANAGER_DIR/manage_settings.sh" ;;
-        9) bash "$MANAGER_DIR/manage_backup.sh" ;;
-        10) exit 0 ;;
+        5) bash "$MANAGER_DIR/manage_tools.sh" ;;
+        6) bash "$MANAGER_DIR/manage_settings.sh" ;;
+        7) bash "$MANAGER_DIR/manage_backup.sh" ;;
+        8) exit 0 ;;
     esac
     tput civis
 }

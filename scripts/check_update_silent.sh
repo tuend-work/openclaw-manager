@@ -18,7 +18,7 @@ cd "$MANAGER_DIR" || exit 0
 # Fetch nhanh (Chạy ngầm với timeout 3s)
 (git fetch --quiet origin main > /dev/null 2>&1) &
 FETCH_PID=$!
-sleep 3
+sleep 3 
 if kill -0 $FETCH_PID 2>/dev/null; then
     kill $FETCH_PID 2>/dev/null
     exit 0
