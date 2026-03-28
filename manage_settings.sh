@@ -25,12 +25,7 @@ restart_gateway() {
 options=(
     "Cổng Gateway (gateway.port)"
     "Gateway Token (Auth Token)"
-    "Tailscale Mode (VPN Mode)"
-    "Telegram Token (botToken)"
-    "Telegram Allowed Users"
-    "AI Model Mặc định (Primary)"
     "Allowed Origins (CORS)"
-    "Cấu hình thủ công (Key & Value)"
     "Khởi động lại OpenClaw"
     "Quay lại Menu chính"
 )
@@ -49,25 +44,9 @@ execute_action() {
            [ -n "$val" ] && openclaw config set gateway.port "$val" && restart_gateway ;;
         1) echo -n "Nhập Gateway Token bảo mật: "; read val
            [ -n "$val" ] && openclaw config set gateway.auth.token "$val" && restart_gateway ;;
-        2) echo -e "${YELLOW}1. Bật | 2. Tắt${NC}"; read val
-           [ "$val" == "1" ] && openclaw config set gateway.tailscale.mode "on" && restart_gateway
-           [ "$val" == "2" ] && openclaw config set gateway.tailscale.mode "off" && restart_gateway ;;
-        3) echo -n "Nhập Telegram Bot Token: "; read val
-           [ -n "$val" ] && openclaw config set channels.telegram.botToken "$val" && restart_gateway ;;
-        4) echo -n "Nhập ID Telegram (cách nhau khoảng trắng): "; read -a val_array
-           if [ ${#val_array[@]} -gt 0 ]; then
-               json_arr="["
-               for id in "${val_array[@]}"; do json_arr+="\"$id\","; done
-               json_arr="${json_arr%,}]"
-               openclaw config set channels.telegram.allowFrom "$json_arr" && restart_gateway
-           fi ;;
-        5) echo -n "Nhập Model ID (VD: openrouter/auto): "; read val
-           [ -n "$val" ] && openclaw config set agents.defaults.model.primary "$val" && restart_gateway ;;
-        6) echo -n "Nhập Domain (VD: https://ai.example.com): "; read val
-           [ -n "$val" ] && openclaw config set gateway.controlUi.allowedOrigins "[\"$val\"]" && restart_gateway ;;
-        7) echo -n "Nhập Key: "; read c_key; echo -n "Nhập Value: "; read c_val
+        2) echo -n "Nhập Key: "; read c_key; echo -n "Nhập Value: "; read c_val
            [ -n "$c_key" ] && openclaw config set "$c_key" "$c_val" && restart_gateway ;;
-        8) systemctl restart openclaw > /dev/null 2>&1; echo -e "${GREEN}Restart hoàn tất!${NC}" ;;
+        3) systemctl restart openclaw > /dev/null 2>&1; echo -e "${GREEN}Restart hoàn tất!${NC}" ;;
     esac
     pause_menu
 }
