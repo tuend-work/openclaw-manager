@@ -47,7 +47,13 @@ execute_action() {
                 ENV_PATH="$HOME/.openclaw/.env"
                 if [ -f "$ENV_PATH" ]; then
                     sed -i "s|^OPENCLAW_GATEWAY_TOKEN=.*|OPENCLAW_GATEWAY_TOKEN=\"$val\"|" "$ENV_PATH"
-                    echo -e "${GREEN}✅ Đã cập nhật Token vào file .env!${NC}"
+                    echo -e "${GREEN}✅ Đã cập nhật Token mới vào file .env!${NC}"
+                    
+                    echo -e "${YELLOW}🧹 Đang dọn dẹp Sessions và Devices cũ...${NC}"
+                    openclaw sessions reset --all --yes 2>/dev/null
+                    openclaw devices remove --all --yes 2>/dev/null
+                    echo -e "${GREEN}✅ Đã dọn dẹp sạch sẽ!${NC}"
+                    
                     restart_gateway
                 else
                     echo -e "${RED}❌ Lỗi: Không tìm thấy file .env tại $ENV_PATH${NC}"
