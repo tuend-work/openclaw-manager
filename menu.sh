@@ -20,7 +20,6 @@ IP_ADDR=$(hostname -I | awk '{print $1}')
 OPENCLAW_VER=$(openclaw --version 2>/dev/null | awk '{print $2}' || echo "N/A")
 OCM_VER="v3.1.1"
 options=(
-    "OpenClaw Quick (Lệnh nhanh)"
     "Domain & SSL (Tên miền)"
     "AI Agents (Agents)"
     "Channels (Kênh Chat)"
@@ -40,12 +39,11 @@ execute_module() {
     local index=$1
     tput cnorm
     case $index in
-        0) bash "$MANAGER_DIR/manage_commands.sh" ;;
-        1) bash "$MANAGER_DIR/manage_domain.sh" ;;
-        2) bash "$MANAGER_DIR/manage_ai.sh" ;;
-        3) bash "$MANAGER_DIR/manage_channels.sh" ;;
-        4) bash "$MANAGER_DIR/manage_models.sh" ;;
-        5) bash "$MANAGER_DIR/manage_logs.sh" ;;
+        0) bash "$MANAGER_DIR/manage_domain.sh" ;;
+        1) bash "$MANAGER_DIR/manage_ai.sh" ;;
+        2) bash "$MANAGER_DIR/manage_channels.sh" ;;
+        3) bash "$MANAGER_DIR/manage_models.sh" ;;
+        4) bash "$MANAGER_DIR/manage_logs.sh" ;;
         6) bash "$MANAGER_DIR/manage_services.sh" ;;
         7) bash "$MANAGER_DIR/manage_tools.sh" ;;
         8) bash "$MANAGER_DIR/manage_settings.sh" ;;
