@@ -78,7 +78,8 @@ elif [ "$FIRST_BOOT_STATUS" == "installing" ]; then
     echo -e "${YELLOW}⚠️ Hệ thống đang trong quá trình cài đặt (first-boot setup).${NC}"
     echo -ne "${CYAN}Đang mở log xem tiến trình cài đặt... (Bấm Ctrl+C để thoát)${NC}\n"
     sleep 2
-    tail -f /var/log/ocm_first_boot.log
+    touch /var/log/ocm_first_boot.log
+    tail -f --retry /var/log/ocm_first_boot.log
 else
     echo -e "${CYAN}Hệ thống đã sẵn sàng cho bản OS Template (Tự động cài khi khởi động).${NC}"
     echo -e "${YELLOW}Bạn có muốn thực hiện cài đặt toàn bộ ngay bây giờ không?${NC}"

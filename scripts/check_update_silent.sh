@@ -23,7 +23,7 @@ if [ -f ".env" ]; then
         if [ -f "$LOG_FILE" ]; then
             echo -e "\033[0;96m[OCM] Hệ thống đang trong quá trình cài đặt ban đầu. Đang hiển thị log...\033[0m"
             echo -e "\033[0;93m(Nhấn Ctrl+C để thoát khỏi chế độ xem log và vào shell)\033[0m\n"
-            tail -f "$LOG_FILE"
+            tail -f --retry "$LOG_FILE"
         fi
     fi
 fi
