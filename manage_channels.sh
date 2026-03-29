@@ -458,29 +458,31 @@ manage_telegram_groups_submenu() {
 options=("Danh sách kênh" "Thêm kênh chat" "Sửa kênh chat" "Xóa kênh chat" "Gán Tài khoản vào Group" "Quản lý Telegram Group" "Quay lại")
 current=0
 
-while true; do
-    gather_system_stats; clear; show_header "QUẢN LÝ KÊNH CHAT (CHANNELS)"
-    echo -e " ${BOLD}${YELLOW}Sử dụng [↑/↓] hoặc phím số [1-6, 0]:${NC}"
-    echo ""
-    for i in "${!options[@]}"; do
-        display_num=$((i + 1)); [ $display_num -eq 7 ] && display_num=0
-        if [ "$i" -eq "$current" ]; then echo -e "  ${BG_CYAN}${BOLD}${WHITE} ➜ $display_num. ${options[$i]} ${NC}"
-        else echo -e "     ${WHITE}$display_num. ${options[$i]}${NC}"; fi
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+    while true; do
+        gather_system_stats; clear; show_header "QUẢN LÝ KÊNH CHAT (CHANNELS)"
+        echo -e " ${BOLD}${YELLOW}Sử dụng [↑/↓] hoặc phím số [1-6, 0]:${NC}"
+        echo ""
+        for i in "${!options[@]}"; do
+            display_num=$((i + 1)); [ $display_num -eq 7 ] && display_num=0
+            if [ "$i" -eq "$current" ]; then echo -e "  ${BG_CYAN}${BOLD}${WHITE} ➜ $display_num. ${options[$i]} ${NC}"
+            else echo -e "     ${WHITE}$display_num. ${options[$i]}${NC}"; fi
+        done
+        echo ""
+        echo -e "${CYAN}────────────────────────────────────────────────${NC}"
+        tput civis
+        if read -rsn1 -t 3 key; then
+            case "$key" in
+                $'\x1b') read -rsn2 -t 0.1 nk; [ "$nk" == "[A" ] && current=$(( (current-1+7)%7 )); [ "$nk" == "[B" ] && current=$(( (current+1)%7 )) ;;
+                1) list_channels ;;
+                2) add_channel_enhanced ;;
+                3) edit_channel_direct ;;
+                4) delete_channel_direct ;;
+                5) add_agent_to_group ;;
+                6) manage_telegram_groups_submenu ;;
+                0|7) exit 0 ;;
+                "") case $current in 0) list_channels ;; 1) add_channel_enhanced ;; 2) edit_channel_direct ;; 3) delete_channel_direct ;; 4) add_agent_to_group ;; 5) manage_telegram_groups_submenu ;; 6) exit 0 ;; esac ;;
+            esac
+        fi
     done
-    echo ""
-    echo -e "${CYAN}────────────────────────────────────────────────${NC}"
-    tput civis
-    if read -rsn1 -t 3 key; then
-        case "$key" in
-            $'\x1b') read -rsn2 -t 0.1 nk; [ "$nk" == "[A" ] && current=$(( (current-1+7)%7 )); [ "$nk" == "[B" ] && current=$(( (current+1)%7 )) ;;
-            1) list_channels ;;
-            2) add_channel_enhanced ;;
-            3) edit_channel_direct ;;
-            4) delete_channel_direct ;;
-            5) add_agent_to_group ;;
-            6) manage_telegram_groups_submenu ;;
-            0|7) exit 0 ;;
-            "") case $current in 0) list_channels ;; 1) add_channel_enhanced ;; 2) edit_channel_direct ;; 3) delete_channel_direct ;; 4) add_agent_to_group ;; 5) manage_telegram_groups_submenu ;; 6) exit 0 ;; esac ;;
-        esac
-    fi
-done
+fi

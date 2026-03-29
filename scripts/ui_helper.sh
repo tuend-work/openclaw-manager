@@ -17,6 +17,17 @@ BOLD='\033[1m'
 NC='\033[0m'
 BG_CYAN='\033[46m'
 
+# Get Manager Directory
+REAL_PATH=$(readlink -f "${BASH_SOURCE[0]}")
+MANAGER_DIR="$( cd "$( dirname "$REAL_PATH" )/.." &> /dev/null && pwd )"
+
+# Load OCM Version
+OCM_VERSION="vUnknown"
+if [ -f "$MANAGER_DIR/.env" ]; then
+    OCM_VERSION=$(grep "^OCM_VERSION=" "$MANAGER_DIR/.env" | cut -d'=' -f2 | tr -d '"'\'' ')
+    [ -z "$OCM_VERSION" ] && OCM_VERSION="vUnknown"
+fi
+
 gather_system_stats() {
     SYS_RAM=$(free -m | awk 'NR==2{printf "%.1fGB/%.1fGB", $3/1024, $2/1024}')
     SYS_DISK=$(df -h / | awk '$NF=="/"{printf "%s/%s", $3, $2}')
@@ -46,6 +57,7 @@ show_header() {
 
     # Move cursor to top-left to reduce flicker in loops
     printf "\033[H"
+    echo -e " ${BOLD}${CYAN}OPENCLAW MANAGER${NC} ${GRAY}| ${NC}${WHITE}Version: ${YELLOW}${OCM_VERSION}${NC}"
     echo -e "${CYAN}┌──────────────────────────────────────────────┐${NC}"
     echo -e "${CYAN}│${NC}       ${BOLD}${WHITE}${title:-WELCOME TO OPEN-CLAW MANAGER}${NC}       ${CYAN}│${NC}"
     echo -e "${CYAN}└──────────────────────────────────────────────┘${NC}"

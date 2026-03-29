@@ -1,0 +1,85 @@
+{
+    "meta": {
+        "lastTouchedVersion": "2026.3.24",
+        "lastTouchedAt": "2026-03-28T21:03:51.081Z"
+    },
+    "wizard": {
+        "lastRunAt": "2026-03-19T15:34:46.886Z",
+        "lastRunVersion": "2026.3.13",
+        "lastRunCommand": "onboard",
+        "lastRunMode": "local"
+    },
+    "auth": {
+        "profiles": {}
+    },
+    "agents": {
+        "defaults": {
+            "model": {},
+            "models": {},
+            "workspace": "/root/.openclaw/workspace"
+        },
+        "list": [
+            {
+                "id": "main",
+                "workspace": "~/.openclaw/workspace-main"
+            }
+        ]
+    },
+    "tools": {},
+    "bindings": [],
+    "commands": {
+        "native": "auto",
+        "nativeSkills": "auto",
+        "restart": true,
+        "ownerDisplay": "raw"
+    },
+    "session": {
+        "dmScope": "per-channel-peer",
+        "reset": {
+            "mode": "daily",
+            "atHour": 4
+        }
+    },
+    "channels": {
+        "telegram": {}
+    },
+    "gateway": {
+        "port": 18789,
+        "mode": "local",
+        "bind": "lan",
+        "controlUi": {
+            "allowedOrigins": [
+                "https://${DOMAIN_NAME}"
+            ]
+        },
+        "auth": {
+            "mode": "token",
+            "token": "${OPENCLAW_GATEWAY_TOKEN}"
+        },
+        "tailscale": {
+            "mode": "off",
+            "resetOnExit": false
+        },
+        "remote": {
+            "token": "${OPENCLAW_GATEWAY_TOKEN}"
+        },
+        "nodes": {
+            "denyCommands": [
+                "camera.snap",
+                "camera.clip",
+                "screen.record",
+                "contacts.add",
+                "calendar.add",
+                "reminders.add",
+                "sms.send"
+            ]
+        }
+    },
+    "plugins": {
+        "entries": {
+            "telegram": {
+                "enabled": true
+            }
+        }
+    }
+}

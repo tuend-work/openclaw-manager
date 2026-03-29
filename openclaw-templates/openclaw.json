@@ -1,11 +1,6 @@
 {
     "auth": {
-        "profiles": {
-            "openrouter:default": {
-                "provider": "openrouter",
-                "mode": "api_key"
-            }
-        }
+        "profiles": {}
     },
     "gateway": {
         "port": 18789,
@@ -52,11 +47,20 @@
             "workspace": "/root/.openclaw/workspace"
         },
         "list": [
-            { "id": "main", "workspace": "/root/.openclaw/workspace-main" }
+            {
+                "id": "main",
+                "workspace": "/root/.openclaw/workspace-main"
+            }
         ]
     },
     "bindings": [
-        { "agentId": "main", "match": { "channel": "telegram", "accountId": "default" } }
+        {
+            "agentId": "main",
+            "match": {
+                "channel": "telegram",
+                "accountId": "default"
+            }
+        }
     ],
     "channels": {
         "telegram": {

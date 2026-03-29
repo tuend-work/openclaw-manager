@@ -49,7 +49,7 @@ if [ -f "$ENV_FILE" ]; then
         echo -e "${BLUE}================================================${NC}"
         echo -e "${CYAN}Hệ thống phát hiện cấu hình Telegram chưa được thiết lập.${NC}"
         echo -ne "${YELLOW}➤ Nhập Telegram Bot Token cho tài khoản 'default':${NC} "
-        read input_token
+        read -r input_token < /dev/tty
         
         if [ -n "$input_token" ]; then
             USER_ID=""
@@ -70,6 +70,7 @@ if [ -f "$ENV_FILE" ]; then
                 echo -ne "${CYAN}.${NC}"
                 sleep 5
             done
+            echo ""
 
             [ -z "$USER_ID" ] || [ "$USER_ID" == "null" ] && USER_ID=""
             
@@ -85,8 +86,9 @@ if [ -f "$ENV_FILE" ]; then
 
     # OpenRouter API Key
     if [[ "$OPENROUTER_API_KEY" == "your_openrouter_api_key" || -z "$OPENROUTER_API_KEY" ]]; then
+        echo -e ""
         echo -ne "${YELLOW}➤ Nhập OpenRouter API Key (sk-or-...) [Enter để bỏ qua]:${NC} "
-        read input_key
+        read -r input_key < /dev/tty
         if [ -n "$input_key" ]; then
             sed -i "s/^OPENROUTER_API_KEY=.*/OPENROUTER_API_KEY=$input_key/" "$ENV_FILE"
             echo -e "${GREEN}✅ Đã lưu OpenRouter API Key.${NC}"
