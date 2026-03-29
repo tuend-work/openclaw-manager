@@ -63,15 +63,20 @@ echo -e "${YELLOW}[3/4] Đăng ký Cronjob khởi động...${NC}"
 ) | crontab -
 
 # 4. Kiểm tra trạng thái cài đặt
-FIRST_BOOT_DONE="false"
+FIRST_BOOT_STATUS="false"
 [ -f "$OCM_ENV_FILE" ] && source "$OCM_ENV_FILE"
 
 echo -e "\n${BLUE}================================================${NC}"
-if [ "$FIRST_BOOT_DONE" == "true" ]; then
+if [ "$FIRST_BOOT_STATUS" == "done" ]; then
     echo -e "${GREEN}✅ Hệ thống OpenClaw đã được cài đặt từ trước.${NC}"
     echo -e "${YELLOW}⚡ Đang khởi động menu...${NC}"
     sleep 2
     bash "$MANAGER_DIR/boot.sh"
+elif [ "$FIRST_BOOT_STATUS" == "installing" ]; then
+    echo -e "${YELLOW}⚠️ Hệ thống đang trong quá trình cài đặt (first-boot setup).${NC}"
+    echo -ne "${CYAN}Đang mở log xem tiến trình cài đặt... (Bấm Ctrl+C để thoát)${NC}\n"
+    sleep 2
+    tail -f /var/log/ocm_first_boot.log
 else
     echo -e "${CYAN}Hệ thống đã sẵn sàng cho bản OS Template (Tự động cài khi khởi động).${NC}"
     echo -e "${YELLOW}Bạn có muốn thực hiện cài đặt toàn bộ ngay bây giờ không?${NC}"
