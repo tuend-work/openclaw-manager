@@ -3,6 +3,7 @@
 # =========================================================
 # OPENCLAW MANAGER - BOOTSTRAP & MANUAL INSTALLER
 # =========================================================
+export TERM=${TERM:-xterm-256color}
 
 RED='\033[0;31m'
 GREEN='\033[0;32m'

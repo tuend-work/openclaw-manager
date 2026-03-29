@@ -6,6 +6,7 @@
 # Nhiệm vụ: cài đặt toàn bộ OCM + OpenClaw + .env + Nginx + SSL
 # Log: /var/log/ocm_first_boot.log
 # =========================================================
+export TERM=${TERM:-xterm-256color}
 
 MANAGER_DIR="/root/openclaw-manager"
 OCM_ENV_FILE="$MANAGER_DIR/.env"
@@ -197,15 +198,21 @@ if ! command -v openclaw &> /dev/null; then
         echo -e "${GREEN}    - Cài đặt OpenClaw thành công!${NC}"
         sudo loginctl enable-linger root > /dev/null 2>&1
 
-        # Tạo thư mục và copy file cấu hình
+        # Tạo thư mục và cấu hình file .env
         mkdir -p "$HOME/.openclaw"
-        cp "$MANAGER_DIR/openclaw-templates/openclaw.env.example" "$HOME/.openclaw/.env"
-        cp "$MANAGER_DIR/openclaw-templates/openclaw.json" "$HOME/.openclaw/"
+        if [ -f "$HOME/.openclaw/.env" ]; then
+            echo -e "${YELLOW}    - Bổ sung nội dung từ example vào .env hiện có...${NC}"
+            cat "$MANAGER_DIR/openclaw-templates/openclaw.env.example" >> "$HOME/.openclaw/.env"
+        else
+            cp "$MANAGER_DIR/openclaw-templates/openclaw.env.example" "$HOME/.openclaw/.env"
+        fi
+        
+        [ -f "$HOME/.openclaw/openclaw.json" ] || cp "$MANAGER_DIR/openclaw-templates/openclaw.json" "$HOME/.openclaw/"
 
-        # Cập nhật DOMAIN_NAME và token tự động
+        # Cập nhật DOMAIN_NAME và token tự động (Chỉ thay nếu là giá trị mặc định)
         sed -i "s/DOMAIN_NAME=ai.example.com/DOMAIN_NAME=$(hostname)/g" "$HOME/.openclaw/.env"
         sed -i "s/your_secure_random_token_here/$(openssl rand -hex 32)/g" "$HOME/.openclaw/.env"
-        echo -e "${GREEN}    - Đã tạo ~/.openclaw/.env với DOMAIN_NAME=$(hostname)${NC}"
+        echo -e "${GREEN}    - Thiết lập file cấu hình hoàn tất.${NC}"
 
         # Cài đặt Gateway Service
         echo -e "${YELLOW}    - Đang thiết lập OpenClaw Gateway Service...${NC}"
