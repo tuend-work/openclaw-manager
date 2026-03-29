@@ -15,6 +15,19 @@ fi
 
 cd "$MANAGER_DIR" || exit 0
 
+# --- Kiểm tra Trạng thái cài đặt First Boot ---
+if [ -f ".env" ]; then
+    source .env
+    if [ "$FIRST_BOOT_STATUS" == "installing" ]; then
+        LOG_FILE="/var/log/ocm_first_boot.log"
+        if [ -f "$LOG_FILE" ]; then
+            echo -e "\033[0;96m[OCM] Hệ thống đang trong quá trình cài đặt ban đầu. Đang hiển thị log...\033[0m"
+            echo -e "\033[0;93m(Nhấn Ctrl+C để thoát khỏi chế độ xem log và vào shell)\033[0m\n"
+            tail -f "$LOG_FILE"
+        fi
+    fi
+fi
+
 # Fetch nhanh (Chạy ngầm với timeout 3s)
 (git fetch --quiet origin main > /dev/null 2>&1) &
 FETCH_PID=$!

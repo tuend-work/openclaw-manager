@@ -11,15 +11,18 @@ MANAGER_DIR="/root/openclaw-manager"
 OCM_ENV_FILE="$MANAGER_DIR/.env"
 LOG_FILE="/var/log/ocm_first_boot.log"
 
-# --- Kiểm tra xem đã chạy rồi chưa ---
-FIRST_BOOT_DONE="false"
-if [ -f "$OCM_ENV_FILE" ]; then
-    source "$OCM_ENV_FILE"
-fi
-if [ "$FIRST_BOOT_DONE" == "true" ]; then
+# --- Kiểm tra trạng thái FIRST_BOOT_STATUS ---
+# false (mặc định), installing (đang cài đặt), done (hoàn tất)
+FIRST_BOOT_STATUS="false"
+[ -f "$OCM_ENV_FILE" ] && source "$OCM_ENV_FILE"
+
+if [ "$FIRST_BOOT_STATUS" == "done" ]; then
     exit 0
 fi
 
+# Đánh dấu trạng thái đang cài đặt
+sed -i '/^FIRST_BOOT_STATUS=/d' "$OCM_ENV_FILE" 2>/dev/null
+echo "FIRST_BOOT_STATUS=installing" >> "$OCM_ENV_FILE"
 # Ghi log toàn bộ output
 exec > >(tee -a "$LOG_FILE") 2>&1
 
@@ -269,8 +272,9 @@ echo -e "${GREEN}    - Lệnh 'ocm' đã sẵn sàng.${NC}"
 
 # 7. Đánh dấu hoàn tất — không chạy lại lần sau
 echo -e "${YELLOW}[7/7] Hoàn tất & đánh dấu trạng thái...${NC}"
-sed -i '/^FIRST_BOOT_DONE=/d' "$OCM_ENV_FILE" 2>/dev/null
-echo "FIRST_BOOT_DONE=true" >> "$OCM_ENV_FILE"
+sed -i '/^FIRST_BOOT_STATUS=/d' "$OCM_ENV_FILE" 2>/dev/null
+echo "FIRST_BOOT_STATUS=done" >> "$OCM_ENV_FILE"
+
 
 echo ""
 echo -e "${BLUE}================================================${NC}"
