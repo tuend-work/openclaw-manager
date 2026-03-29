@@ -2,7 +2,7 @@
 
 # =========================================================
 # OPENCLAW MANAGER - SETUP WIZARD
-# Dẫn dắt người dùng cấu hình hệ thống lần đầu
+# Hướng dẫn người dùng cấu hình hệ thống lần đầu
 # =========================================================
 
 MANAGER_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
@@ -22,27 +22,47 @@ show_wizard_header() {
     echo -e "${BLUE}================================================${NC}"
     echo -e "${YELLOW}       OPENCLAW MANAGER - SETUP WIZARD          ${NC}"
     echo -e "${BLUE}================================================${NC}"
-    echo -e "${CYAN}  Hệ thống sẽ dẫn dắt bạn cấu hình từng bước.    ${NC}"
+    echo -e "${CYAN}  Hệ thống sẽ hướng dẫn bạn cấu hình từng bước.    ${NC}"
     echo -e "${BLUE}================================================${NC}"
     echo ""
 }
 
-# --- BƯỚC 1: KIỂM TRA DOMAIN ---
+# --- BƯỚC 1: KIỂM TRA DOMAIN, NGINX & SSL ---
 step_1_domain() {
     [ -f "$ENV_FILE" ] && source "$ENV_FILE"
-    if [[ "$DOMAIN_NAME" == "ai.example.com" || -z "$DOMAIN_NAME" ]]; then
-        echo -e "${YELLOW}[BƯỚC 1/6] Cấu hình Domain & SSL${NC}"
-        echo -e "Phát hiện Domain chưa được thiết lập."
-        echo -ne "Bạn có muốn cấu hình Domain ngay bây giờ? (y/n): "; read choice
+    
+    local domain_ok=true
+    local reason=""
+
+    # 1. Kiểm tra biến trong .env
+    if [ -z "$DOMAIN_NAME" ]; then
+        domain_ok=false
+        reason="chưa cấu hình domain trong .env"
+    else
+        # 2. Kiểm tra Nginx Proxy
+        if [ ! -f "/etc/nginx/sites-enabled/$DOMAIN_NAME" ]; then
+            domain_ok=false
+            reason="thiếu tệp cấu hình Nginx Proxy"
+        # 3. Kiểm tra SSL
+        elif [ ! -f "/etc/letsencrypt/live/$DOMAIN_NAME/fullchain.pem" ]; then
+            domain_ok=false
+            reason="chưa có chứng chỉ SSL (HTTPS)"
+        fi
+    fi
+
+    if [ "$domain_ok" = false ]; then
+        echo -e "${YELLOW}[BƯỚC 1/6] Kiểm tra Domain & SSL${NC}"
+        echo -e "⚠️ Cảnh báo: Domain ($DOMAIN_NAME) $reason."
+        echo -ne "Bạn có muốn thiết lập Domain & SSL ngay bây giờ? (y/n): "; read choice
         if [[ "$choice" =~ ^[yY] ]]; then
             source "$MANAGER_DIR/manage_domain.sh"
             setup_domain_ssl
         else
-            echo -e "${MAGENTA}Bỏ qua Bước 1.${NC}"
+            echo -e "${MAGENTA}Bỏ qua Bước 1. Lưu ý: Hệ thống có thể không truy cập được từ bên ngoài.${NC}"
         fi
         echo ""
     else
-        echo -e "${GREEN}✅ Bước 1: Domain đã được cấu hình ($DOMAIN_NAME).${NC}"
+        echo -e "${GREEN}✅ Bước 1: Domain & SSL đã sẵn sàng ($DOMAIN_NAME).${NC}"
     fi
 }
 
