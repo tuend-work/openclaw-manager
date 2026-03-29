@@ -15,16 +15,17 @@ setup_domain_ssl() {
     local port=$2
 
     [ -t 1 ] && tput cnorm
-    echo -e "${YELLOW}>>> CẤU HÌNH DOMAIN & SSL (NGINX PROXY) <<<${NC}"
+    echo -e "${YELLOW}>>> CẤU HÌNH DOMAIN & SSL (AUTO MODE) <<<${NC}"
     echo -e "${BLUE}------------------------------------------------${NC}"
     
+    # Nếu không có tham số -> Yêu cầu nhập
     if [ -z "$domain" ]; then
         echo -n "Nhập domain mới (vd: ai.example.com): "
         read domain
     fi
 
-    if [ -z "$domain" ]; then echo -e "${RED}Lỗi: Domain trống!${NC}"; sleep 2; return; fi
-    if [[ ! $domain =~ ^[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$ ]]; then echo -e "${RED}Domain không hợp lệ!${NC}"; sleep 2; return; fi
+    if [ -z "$domain" ]; then echo -e "${RED}Lỗi: Domain trống!${NC}"; [ -t 1 ] && sleep 2; return; fi
+    if [[ ! $domain =~ ^[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$ ]]; then echo -e "${RED}Domain không hợp lệ!${NC}"; [ -t 1 ] && sleep 2; return; fi
 
     if [ -z "$port" ]; then
         echo -n "Nhập Port của OpenClaw (Mặc định: 18789): "
@@ -68,22 +69,25 @@ EOF
 
     if command -v openclaw &> /dev/null; then
         openclaw config set gateway.controlUi.allowedOrigins "[\"https://$domain\"]" > /dev/null 2>&1
-        systemctl restart openclaw > /dev/null 2>&1
+        systemctl restart openclaw-gateway > /dev/null 2>&1
     fi
     
+    # Chỉ pause nếu có terminal và không có tham số đầu vào
     [ -t 1 ] && [ -z "$1" ] && pause_menu
 }
 
-options=("Cài đặt bài bản Domain & SSL" "Kiểm tra cấu hình Nginx" "Quay lại Menu chính")
-current=0
-
-# Handle direct execution with arguments (non-interactive)
+# --- DISPATCHER ---
+# Nếu được gọi với tham số (vú dụ từ First Boot), chạy thẳng rồi thoát
 if [[ -n "$1" ]]; then
-    setup_domain_ssl "$1" "$2"
+    setup_domain_ssl "$@"
     exit 0
 fi
 
+# --- MODE MENU TƯƠNG TÁC ---
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+    options=("Cài đặt bài bản Domain & SSL" "Kiểm tra cấu hình Nginx" "Quay lại Menu chính")
+    current=0
+    
     while true; do
         gather_system_stats
         [ -t 1 ] && clear

@@ -246,30 +246,30 @@ openclaw completion --write-state > /dev/null 2>&1
 openclaw completion --shell bash --install > /dev/null 2>&1
 source ~/.bashrc > /dev/null 2>&1 || true
 
-# 5. Cấu hình Domain & SSL (Nginx Proxy)
-echo -e "${YELLOW}[5/7] Cấu hình Domain & SSL (Nginx Proxy)...${NC}"
-CURRENT_HOSTNAME=$(hostname)
+# # 5. Cấu hình Domain & SSL (Nginx Proxy)
+# echo -e "${YELLOW}[5/7] Cấu hình Domain & SSL (Nginx Proxy)...${NC}"
+# CURRENT_HOSTNAME=$(hostname)
 
-DEFAULT_HOSTNAMES=("localhost" "ubuntu" "debian" "raspberrypi" "")
-IS_DEFAULT=false
-for h in "${DEFAULT_HOSTNAMES[@]}"; do
-    [ "$CURRENT_HOSTNAME" == "$h" ] && IS_DEFAULT=true && break
-done
+# DEFAULT_HOSTNAMES=("localhost" "ubuntu" "debian" "raspberrypi" "")
+# IS_DEFAULT=false
+# for h in "${DEFAULT_HOSTNAMES[@]}"; do
+#     [ "$CURRENT_HOSTNAME" == "$h" ] && IS_DEFAULT=true && break
+# done
 
-if $IS_DEFAULT; then
-    echo -e "${YELLOW}    - Hostname '$CURRENT_HOSTNAME' là giá trị mặc định. Bỏ qua Nginx & SSL.${NC}"
-    echo -e "${YELLOW}    - Cài domain sau qua menu OCM > Quản lý Domain & SSL.${NC}"
-elif [[ ! $CURRENT_HOSTNAME =~ ^[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$ ]]; then
-    echo -e "${YELLOW}    - Hostname '$CURRENT_HOSTNAME' không phải domain hợp lệ. Bỏ qua.${NC}"
-else
-    echo -e "${CYAN}    - Phát hiện hostname: ${WHITE}$CURRENT_HOSTNAME${NC}"
-    echo -e "${CYAN}    - Đang cấu hình Nginx Proxy & SSL...${NC}"
-    bash "$MANAGER_DIR/manage_domain.sh" "$CURRENT_HOSTNAME" 18789
-    echo -e "${GREEN}    - Hoàn tất cấu hình Nginx & SSL cho $CURRENT_HOSTNAME!${NC}"
-fi
+# if $IS_DEFAULT; then
+#     echo -e "${YELLOW}    - Hostname '$CURRENT_HOSTNAME' là giá trị mặc định. Bỏ qua Nginx & SSL.${NC}"
+#     echo -e "${YELLOW}    - Cài domain sau qua menu OCM > Quản lý Domain & SSL.${NC}"
+# elif [[ ! $CURRENT_HOSTNAME =~ ^[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$ ]]; then
+#     echo -e "${YELLOW}    - Hostname '$CURRENT_HOSTNAME' không phải domain hợp lệ. Bỏ qua.${NC}"
+# else
+#     echo -e "${CYAN}    - Phát hiện hostname: ${WHITE}$CURRENT_HOSTNAME${NC}"
+#     echo -e "${CYAN}    - Đang cấu hình Nginx Proxy & SSL...${NC}"
+#     bash "$MANAGER_DIR/manage_domain.sh" "$CURRENT_HOSTNAME" 18789
+#     echo -e "${GREEN}    - Hoàn tất cấu hình Nginx & SSL cho $CURRENT_HOSTNAME!${NC}"
+# fi
 
-# Lưu hostname cho cronjob check-reboot-hostname
-echo "$CURRENT_HOSTNAME" > "$MANAGER_DIR/cronjob/.last_hostname"
+# # Lưu hostname cho cronjob check-reboot-hostname
+# echo "$CURRENT_HOSTNAME" > "$MANAGER_DIR/cronjob/.last_hostname"
 
 # 6. Tối ưu symlink và shortcut
 echo -e "${YELLOW}[6/7] Thiết lập shortcut 'ocm'...${NC}"
@@ -281,7 +281,6 @@ echo -e "${GREEN}    - Lệnh 'ocm' đã sẵn sàng.${NC}"
 echo -e "${YELLOW}[7/7] Hoàn tất & đánh dấu trạng thái...${NC}"
 sed -i '/^FIRST_BOOT_STATUS=/d' "$OCM_ENV_FILE" 2>/dev/null
 echo "FIRST_BOOT_STATUS=done" >> "$OCM_ENV_FILE"
-
 
 echo ""
 echo -e "${BLUE}================================================${NC}"
