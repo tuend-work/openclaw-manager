@@ -11,7 +11,7 @@ MANAGER_DIR="$( cd "$( dirname "$REAL_PATH" )" &> /dev/null && pwd )"
 source "$MANAGER_DIR/scripts/ui_helper.sh"
 
 setup_domain_ssl() {
-    tput cnorm
+    [ -t 1 ] && tput cnorm
     echo -e "${YELLOW}>>> CẤU HÌNH DOMAIN & SSL (NGINX PROXY) <<<${NC}"
     echo -e "${BLUE}------------------------------------------------${NC}"
     
@@ -72,7 +72,7 @@ current=0
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
     while true; do
         gather_system_stats
-        clear
+        [ -t 1 ] && clear
         show_header "QUẢN LÝ DOMAIN & SSL"
         echo -e " ${BOLD}${YELLOW}Sử dụng [↑/↓] hoặc phím số [1-2, 0]:${NC}"
         echo ""

@@ -3,6 +3,7 @@
 # =========================================================
 # OPENCLAW MANAGER - UI HELPER & SYSTEM STATS
 # =========================================================
+export TERM=${TERM:-xterm-256color}
 
 # Modern Color Palette
 RED='\033[0;91m'
