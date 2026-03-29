@@ -11,10 +11,12 @@ MANAGER_DIR="$( cd "$( dirname "$REAL_PATH" )" &> /dev/null && pwd )"
 source "$MANAGER_DIR/scripts/ui_helper.sh"
 
 restart_gateway_sm() {
-    echo -e "${YELLOW}⏳ Đang khởi động lại Gateway...${NC}"
-    openclaw gateway restart > /dev/null 2>&1
-    [ $? -eq 0 ] && echo -e "${GREEN}✅ Gateway đã được khởi động lại thành công!${NC}" || echo -e "${RED}⚠️  Lỗi restart gateway.${NC}"
-    sleep 1
+    echo -e "${YELLOW}⏳ Đang gửi yêu cầu làm mới Gateway...${NC}"
+    export XDG_RUNTIME_DIR="/run/user/$UID"
+    export DBUS_SESSION_BUS_ADDRESS="unix:path=${XDG_RUNTIME_DIR}/bus"
+    systemctl --user restart openclaw-gateway > /dev/null 2>&1
+    echo -e "${GREEN}✅ Đã gửi lệnh làm mới!${NC}"
+    sleep 0.5
 }
 
 options=(

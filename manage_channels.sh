@@ -18,14 +18,12 @@ export DBUS_SESSION_BUS_ADDRESS="unix:path=${XDG_RUNTIME_DIR}/bus"
 
 # Helper function to restart gateway
 restart_gateway_sl() {
-    echo -e "${YELLOW}⏳ Đang khởi động lại Gateway để áp dụng thay đổi...${NC}"
-    if systemctl --user is-active openclaw-gateway.service >/dev/null 2>&1; then
-        systemctl --user restart openclaw-gateway.service
-    else
-        openclaw gateway restart > /dev/null 2>&1
-    fi
-    [ $? -eq 0 ] && echo -e "${GREEN}✅ Đã cập nhật thành công!${NC}" || echo -e "${RED}❌ Lỗi khởi động dịch vụ.${NC}"
-    sleep 1
+    echo -e "${YELLOW}⏳ Đang gửi yêu cầu làm mới Gateway...${NC}"
+    export XDG_RUNTIME_DIR="/run/user/$UID"
+    export DBUS_SESSION_BUS_ADDRESS="unix:path=${XDG_RUNTIME_DIR}/bus"
+    systemctl --user restart openclaw-gateway > /dev/null 2>&1
+    echo -e "${GREEN}✅ Đã gửi lệnh làm mới dịch vụ!${NC}"
+    sleep 0.5
 }
 
 # Ensure JSON structure

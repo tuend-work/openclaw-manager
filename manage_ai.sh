@@ -13,14 +13,12 @@ source "$MANAGER_DIR/scripts/ui_helper.sh"
 
 # Helper: Restart gateway
 restart_gateway_sl() {
-    echo -e "${YELLOW}⏳ Đang khởi động lại Gateway...${NC}"
-    if systemctl --user is-active openclaw-gateway.service >/dev/null 2>&1; then
-        systemctl --user restart openclaw-gateway.service
-    else
-        openclaw gateway restart > /dev/null 2>&1
-    fi
-    [ $? -eq 0 ] && echo -e "${GREEN}✅ Thành công!${NC}" || echo -e "${RED}❌ Lỗi restart.${NC}"
-    sleep 1
+    echo -e "${YELLOW}⏳ Đang gửi yêu cầu làm mới Gateway...${NC}"
+    export XDG_RUNTIME_DIR="/run/user/$UID"
+    export DBUS_SESSION_BUS_ADDRESS="unix:path=${XDG_RUNTIME_DIR}/bus"
+    systemctl --user restart openclaw-gateway > /dev/null 2>&1
+    echo -e "${GREEN}✅ Đã gửi lệnh làm mới!${NC}"
+    sleep 0.5
 }
 
 # Helper: Chọn Agent từ danh sách

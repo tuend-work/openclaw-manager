@@ -12,14 +12,10 @@ source "$MANAGER_DIR/scripts/ui_helper.sh"
 
 # Helper: Restart gateway
 restart_gateway() {
-    echo -e "${YELLOW}⏳ Đang khởi động lại Gateway để áp dụng thay đổi...${NC}"
-    openclaw gateway restart > /dev/null 2>&1
-    if [ $? -eq 0 ]; then
-        echo -e "${GREEN}✅ Gateway đã được khởi động lại thành công!${NC}"
-    else
-        echo -e "${RED}⚠️  Không thể khởi động lại Gateway.${NC}"
-    fi
-    sleep 1
+    echo -e "${YELLOW}⏳ Đang gửi yêu cầu làm mới Gateway...${NC}"
+    systemctl restart openclaw-gateway > /dev/null 2>&1
+    echo -e "${GREEN}✅ Đã gửi lệnh làm mới dịch vụ!${NC}"
+    sleep 0.5
 }
 
 options=(
