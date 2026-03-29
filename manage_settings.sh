@@ -45,10 +45,19 @@ execute_action() {
            [ -n "$val" ] && openclaw config set gateway.port "$val" && restart_gateway ;;
         1) echo -n "Nhập Gateway Token bảo mật mới: "; read val
            if [ -n "$val" ]; then
-                ENV_PATH="$HOME/.openclaw/.env"
+                ENV_PATH="/root/.openclaw/.env"
+                if [ ! -f "$ENV_PATH" ]; then
+                    # Fallback to local .env if root one missing
+                    ENV_PATH="$MANAGER_DIR/.env"
+                fi
+
                 if [ -f "$ENV_PATH" ]; then
-                    sed -i "s|^OPENCLAW_GATEWAY_TOKEN=.*|OPENCLAW_GATEWAY_TOKEN=\"$val\"|" "$ENV_PATH"
-                    echo -e "${GREEN}✅ Đã cập nhật Token mới vào file .env!${NC}"
+                    if grep -q "^OPENCLAW_GATEWAY_TOKEN=" "$ENV_PATH"; then
+                        sed -i "s|^OPENCLAW_GATEWAY_TOKEN=.*|OPENCLAW_GATEWAY_TOKEN=\"$val\"|" "$ENV_PATH"
+                    else
+                        echo "OPENCLAW_GATEWAY_TOKEN=\"$val\"" >> "$ENV_PATH"
+                    fi
+                    echo -e "${GREEN}✅ Đã cập nhật Token mới vào file $ENV_PATH!${NC}"
                     
                     echo -e "${YELLOW}🧹 Đang dọn dẹp Sessions và Devices cũ...${NC}"
                     openclaw sessions reset --all --yes 2>/dev/null
@@ -57,7 +66,7 @@ execute_action() {
                     
                     restart_gateway
                 else
-                    echo -e "${RED}❌ Lỗi: Không tìm thấy file .env tại $ENV_PATH${NC}"
+                    echo -e "${RED}❌ Lỗi: Không tìm thấy file .env tại bất kỳ đâu.${NC}"
                 fi
            fi ;;
         2) echo -n "Nhập Domain (CORS allowedOrigins): "; read val

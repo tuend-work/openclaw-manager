@@ -6,8 +6,10 @@
 # =========================================================
 
 MANAGER_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
-ENV_FILE="$HOME/.openclaw/.env"
-JSON_FILE="$HOME/.openclaw/openclaw.json"
+ENV_FILE="/root/.openclaw/.env"
+[ -f "$ENV_FILE" ] || ENV_FILE="$MANAGER_DIR/.env"
+JSON_FILE="/root/.openclaw/openclaw.json"
+[ -f "$JSON_FILE" ] || JSON_FILE="$MANAGER_DIR/openclaw-templates/openclaw.json"
 
 # Nâng cao tính tương thích
 export TERM=${TERM:-xterm-256color}
