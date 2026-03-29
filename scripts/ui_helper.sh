@@ -17,16 +17,15 @@ BOLD='\033[1m'
 NC='\033[0m'
 BG_CYAN='\033[46m'
 
-# Get Manager Directory
+# Get Directory
 REAL_PATH=$(readlink -f "${BASH_SOURCE[0]}")
-MANAGER_DIR="$( cd "$( dirname "$REAL_PATH" )/.." &> /dev/null && pwd )"
+UI_HELPER_DIR="$( cd "$( dirname "$REAL_PATH" )" &> /dev/null && pwd )"
 
-# Load OCM Version
-OCM_VERSION="vUnknown"
-if [ -f "$MANAGER_DIR/.env" ]; then
-    OCM_VERSION=$(grep "^OCM_VERSION=" "$MANAGER_DIR/.env" | cut -d'=' -f2 | tr -d '"'\'' ')
-    [ -z "$OCM_VERSION" ] && OCM_VERSION="vUnknown"
+# Load Project Configuration (Version, Brand Name, etc)
+if [ -f "$UI_HELPER_DIR/ocm-config.sh" ]; then
+    source "$UI_HELPER_DIR/ocm-config.sh"
 fi
+[ -z "$OCM_VERSION" ] && OCM_VERSION="vUnknown"
 
 gather_system_stats() {
     SYS_RAM=$(free -m | awk 'NR==2{printf "%.1fGB/%.1fGB", $3/1024, $2/1024}')
