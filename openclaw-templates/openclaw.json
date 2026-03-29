@@ -1,11 +1,52 @@
 {
+    "meta": {
+        "lastTouchedVersion": "2026.3.24",
+        "lastTouchedAt": "2026-03-28T21:03:51.081Z"
+    },
+    "wizard": {
+        "lastRunAt": "2026-03-19T15:34:46.886Z",
+        "lastRunVersion": "2026.3.13",
+        "lastRunCommand": "onboard",
+        "lastRunMode": "local"
+    },
     "auth": {
         "profiles": {}
+    },
+    "agents": {
+        "defaults": {
+            "model": {},
+            "models": {},
+            "workspace": "/root/.openclaw/workspace"
+        },
+        "list": [
+            {
+                "id": "main",
+                "workspace": "~/.openclaw/workspace-main"
+            }
+        ]
+    },
+    "tools": {},
+    "bindings": [],
+    "commands": {
+        "native": "auto",
+        "nativeSkills": "auto",
+        "restart": true,
+        "ownerDisplay": "raw"
+    },
+    "session": {
+        "dmScope": "per-channel-peer",
+        "reset": {
+            "mode": "daily",
+            "atHour": 4
+        }
+    },
+    "channels": {
+        "telegram": {}
     },
     "gateway": {
         "port": 18789,
         "mode": "local",
-        "bind": "auto",
+        "bind": "lan",
         "controlUi": {
             "allowedOrigins": [
                 "https://${DOMAIN_NAME}"
@@ -32,54 +73,6 @@
                 "reminders.add",
                 "sms.send"
             ]
-        }
-    },
-    "agents": {
-        "defaults": {
-            "model": {
-                "primary": "openrouter/auto"
-            },
-            "models": {
-                "openrouter/auto": {
-                    "alias": "OpenRouter"
-                }
-            },
-            "workspace": "/root/.openclaw/workspace"
-        },
-        "list": [
-            {
-                "id": "main",
-                "workspace": "/root/.openclaw/workspace-main"
-            }
-        ]
-    },
-    "bindings": [
-        {
-            "agentId": "main",
-            "match": {
-                "channel": "telegram",
-                "accountId": "default"
-            }
-        }
-    ],
-    "channels": {
-        "telegram": {
-            "enabled": true,
-            "accounts": {
-                "default": {
-                    "botToken": "${TELEGRAM_BOT_TOKEN}",
-                    "dmPolicy": "pairing",
-                    "allowFrom": [
-                        "${TELEGRAM_ALLOW_USER_IDS_VALUE}"
-                    ]
-                }
-            }
-        }
-    },
-    "session": {
-        "reset": {
-            "mode": "daily",
-            "atHour": 4
         }
     },
     "plugins": {
