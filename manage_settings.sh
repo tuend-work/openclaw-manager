@@ -26,6 +26,7 @@ options=(
     "Cổng Gateway (gateway.port)"
     "Gateway Token (Auth Token)"
     "Allowed Origins (CORS)"
+    "SetupWizard (Trình khởi tạo nhanh)"
     "Khởi động lại OpenClaw"
     "Quay lại Menu chính"
 )
@@ -34,7 +35,7 @@ current=0
 
 execute_action() {
     local index=$1
-    if [ $index -eq 9 ]; then exit 0; fi 
+    if [ $index -eq 5 ]; then exit 0; fi 
     
     echo -e "${CYAN}────────────────────────────────────────────────${NC}"
     tput cnorm
@@ -61,7 +62,8 @@ execute_action() {
            fi ;;
         2) echo -n "Nhập Domain (CORS allowedOrigins): "; read val
            [ -n "$val" ] && openclaw config set gateway.controlUi.allowedOrigins "[\"$val\"]" && restart_gateway ;;
-        3) systemctl restart openclaw > /dev/null 2>&1; echo -e "${GREEN}Restart hoàn tất!${NC}" ;;
+        3) bash "$MANAGER_DIR/SetupWizard.sh" ;;
+        4) systemctl restart openclaw > /dev/null 2>&1; echo -e "${GREEN}Restart hoàn tất!${NC}" ;;
     esac
     pause_menu
 }
