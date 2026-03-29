@@ -39,12 +39,13 @@ echo -e "${YELLOW}[2/4] Đăng ký Login Hook & Auto Update...${NC}"
 sed -i '/XDG_RUNTIME_DIR/d' ~/.bashrc
 sed -i '/DBUS_SESSION_BUS_ADDRESS/d' ~/.bashrc
 sed -i '/boot.sh/d' ~/.bashrc
+sed -i '/SetupWizard.sh/d' ~/.bashrc
 sed -i '/check_update_silent.sh/d' ~/.bashrc
 
 echo "export XDG_RUNTIME_DIR=\"/run/user/\$UID\"" >> ~/.bashrc
 echo "export DBUS_SESSION_BUS_ADDRESS=\"unix:path=\${XDG_RUNTIME_DIR}/bus\"" >> ~/.bashrc
 echo "if [ -f \"$MANAGER_DIR/scripts/check_update_silent.sh\" ]; then bash \"$MANAGER_DIR/scripts/check_update_silent.sh\"; fi" >> ~/.bashrc
-echo "if [ -f \"$MANAGER_DIR/boot.sh\" ]; then bash \"$MANAGER_DIR/boot.sh\"; fi" >> ~/.bashrc
+echo "if [ -f \"$MANAGER_DIR/SetupWizard.sh\" ]; then bash \"$MANAGER_DIR/SetupWizard.sh\"; fi" >> ~/.bashrc
 
 # Also add to /etc/profile.d for sudo -i cases
 if [ -d "/etc/profile.d" ]; then
@@ -70,9 +71,9 @@ FIRST_BOOT_STATUS="false"
 echo -e "\n${BLUE}================================================${NC}"
 if [ "$FIRST_BOOT_STATUS" == "done" ]; then
     echo -e "${GREEN}✅ Hệ thống OpenClaw đã được cài đặt từ trước.${NC}"
-    echo -e "${YELLOW}⚡ Đang khởi động menu...${NC}"
+    echo -e "${YELLOW}⚡ Đang khởi động trình quản lý...${NC}"
     sleep 2
-    bash "$MANAGER_DIR/boot.sh"
+    bash "$MANAGER_DIR/SetupWizard.sh"
 elif [ "$FIRST_BOOT_STATUS" == "installing" ]; then
     echo -e "${YELLOW}⚠️ Hệ thống đang trong quá trình cài đặt (first-boot setup).${NC}"
     echo -ne "${CYAN}Đang mở log xem tiến trình cài đặt... (Bấm Ctrl+C để thoát)${NC}\n"
