@@ -56,7 +56,6 @@ show_header() {
 
     # Move cursor to top-left to reduce flicker in loops
     printf "\033[H"
-    echo -e " ${BOLD}${CYAN}OPENCLAW MANAGER${NC} ${GRAY}| ${NC}${WHITE}Version: ${YELLOW}${OCM_VERSION}${NC}"
     echo -e "${CYAN}┌──────────────────────────────────────────────┐${NC}"
     echo -e "${CYAN}│${NC}       ${BOLD}${WHITE}${title:-WELCOME TO OPEN-CLAW MANAGER}${NC}       ${CYAN}│${NC}"
     echo -e "${CYAN}└──────────────────────────────────────────────┘${NC}"

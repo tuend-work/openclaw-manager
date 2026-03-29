@@ -18,7 +18,7 @@ fi
 
 IP_ADDR=$(hostname -I | awk '{print $1}')
 OPENCLAW_VER=$(openclaw --version 2>/dev/null | awk '{print $2}' || echo "N/A")
-OCM_VER="v3.2.1"
+OCM_VER="${OCM_VERSION:-N/A}"
 options=(
     "Domain & SSL (Tên miền)"
     "AI Agents (Agents)"
