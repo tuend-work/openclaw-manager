@@ -11,22 +11,29 @@ MANAGER_DIR="$( cd "$( dirname "$REAL_PATH" )" &> /dev/null && pwd )"
 source "$MANAGER_DIR/scripts/ui_helper.sh"
 
 setup_domain_ssl() {
+    local domain=$1
+    local port=$2
+
     [ -t 1 ] && tput cnorm
     echo -e "${YELLOW}>>> CẤU HÌNH DOMAIN & SSL (NGINX PROXY) <<<${NC}"
     echo -e "${BLUE}------------------------------------------------${NC}"
     
-    echo -n "Nhập domain mới (vd: ai.example.com): "
-    read domain
-    if [[ -z "$domain" ]]; then echo -e "${RED}Lỗi: Domain trống!${NC}"; sleep 2; return; fi
+    if [ -z "$domain" ]; then
+        echo -n "Nhập domain mới (vd: ai.example.com): "
+        read domain
+    fi
 
-    echo -n "Nhập Port của OpenClaw (Mặc định: 18789): "
-    read port
-    port=${port:-18789}
-
+    if [ -z "$domain" ]; then echo -e "${RED}Lỗi: Domain trống!${NC}"; sleep 2; return; fi
     if [[ ! $domain =~ ^[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$ ]]; then echo -e "${RED}Domain không hợp lệ!${NC}"; sleep 2; return; fi
 
+    if [ -z "$port" ]; then
+        echo -n "Nhập Port của OpenClaw (Mặc định: 18789): "
+        read port
+    fi
+    port=${port:-18789}
+
     echo -e "${YELLOW}[1/4] Đang đổi hostname thành $domain...${NC}"
-    hostnamectl set-hostname "$domain"
+    hostnamectl set-hostname "$domain" 2>/dev/null
     echo "127.0.0.1 $domain" >> /etc/hosts
 
     echo -e "${YELLOW}[2/4] Đang tạo cấu hình Nginx cho port $port...${NC}"
@@ -47,7 +54,7 @@ server {
     }
 }
 EOF
-    ln -sf "$CONF_FILE" "/etc/nginx/sites-enabled/"
+    ln -sf "$CONF_FILE" "/etc/nginx/sites-enabled/" 2>/dev/null
     nginx -t && systemctl restart nginx
 
     echo -e "${YELLOW}[3/4] Đang cài đặt SSL (Let's Encrypt)...${NC}"
@@ -63,11 +70,18 @@ EOF
         openclaw config set gateway.controlUi.allowedOrigins "[\"https://$domain\"]" > /dev/null 2>&1
         systemctl restart openclaw > /dev/null 2>&1
     fi
-    pause_menu
+    
+    [ -t 1 ] && [ -z "$1" ] && pause_menu
 }
 
 options=("Cài đặt bài bản Domain & SSL" "Kiểm tra cấu hình Nginx" "Quay lại Menu chính")
 current=0
+
+# Handle direct execution with arguments (non-interactive)
+if [[ -n "$1" ]]; then
+    setup_domain_ssl "$1" "$2"
+    exit 0
+fi
 
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
     while true; do
