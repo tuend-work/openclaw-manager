@@ -218,18 +218,20 @@ if ! command -v openclaw &> /dev/null; then
 
         # Tạo thư mục và cấu hình file .env
         mkdir -p "$HOME/.openclaw"
-        if [ -f "$HOME/.openclaw/.env" ]; then
-            echo -e "${YELLOW}    - Bổ sung nội dung từ example vào .env hiện có...${NC}"
-            cat "$MANAGER_DIR/openclaw-templates/openclaw.env.example" >> "$HOME/.openclaw/.env"
+        INPUT_ENV="/root/.openclaw.env"
+        FINAL_ENV="$HOME/.openclaw/.env"
+        
+        if [ -f "$INPUT_ENV" ]; then
+            echo -e "${GREEN}    - Phát hiện tệp cấu hình đầu vào $INPUT_ENV. Đang đồng bộ...${NC}"
+            cp "$INPUT_ENV" "$FINAL_ENV"
         else
-            cp "$MANAGER_DIR/openclaw-templates/openclaw.env.example" "$HOME/.openclaw/.env"
+            echo -e "${YELLOW}    - Không tìm thấy cấu hình. Đang tạo tệp .env từ Hostname...${NC}"
+            cat > "$FINAL_ENV" <<EOF
+DOMAIN_NAME=$(hostname)
+EOF
         fi
         
         [ -f "$HOME/.openclaw/openclaw.json" ] || cp "$MANAGER_DIR/openclaw-templates/openclaw.json" "$HOME/.openclaw/"
-
-        # Cập nhật DOMAIN_NAME và token tự động (Chỉ thay nếu là giá trị mặc định)
-        sed -i "s/DOMAIN_NAME=ai.example.com/DOMAIN_NAME=$(hostname)/g" "$HOME/.openclaw/.env"
-        sed -i "s/your_secure_random_token_here/$(openssl rand -hex 32)/g" "$HOME/.openclaw/.env"
         echo -e "${GREEN}    - Thiết lập file cấu hình hoàn tất.${NC}"
 
         # Cài đặt Gateway Service
@@ -245,15 +247,21 @@ else
     echo -e "${GREEN}    - OpenClaw đã được cài đặt sẵn.${NC}"
 
     # Đảm bảo .env tồn tại với đúng hostname
-    if [ ! -f "$HOME/.openclaw/.env" ]; then
+    INPUT_ENV="/root/.openclaw.env"
+    FINAL_ENV="$HOME/.openclaw/.env"
+
+    if [ ! -f "$FINAL_ENV" ]; then
         mkdir -p "$HOME/.openclaw"
-        cp "$MANAGER_DIR/openclaw-templates/openclaw.env.example" "$HOME/.openclaw/.env"
-        sed -i "s/DOMAIN_NAME=ai.example.com/DOMAIN_NAME=$(hostname)/g" "$HOME/.openclaw/.env"
-        sed -i "s/your_secure_random_token_here/$(openssl rand -hex 32)/g" "$HOME/.openclaw/.env"
+        if [ -f "$INPUT_ENV" ]; then
+            echo -e "${GREEN}    - Phát hiện tệp cấu hình đầu vào $INPUT_ENV. Đang đồng bộ...${NC}"
+            cp "$INPUT_ENV" "$FINAL_ENV"
+        else
+            echo -e "${YELLOW}    - Không tìm thấy cấu hình đầu vào. Tạo từ Hostname...${NC}"
+            cat > "$FINAL_ENV" <<EOF
+DOMAIN_NAME=$(hostname)
+EOF
+        fi
         echo -e "${GREEN}    - Đã tạo ~/.openclaw/.env với DOMAIN_NAME=$(hostname)${NC}"
-    elif grep -q "ai.example.com" "$HOME/.openclaw/.env"; then
-        sed -i "s/ai.example.com/$(hostname)/g" "$HOME/.openclaw/.env"
-        echo -e "${GREEN}    - Đã cập nhật DOMAIN_NAME=$(hostname) trong .env${NC}"
     fi
 
     install_gateway_service
