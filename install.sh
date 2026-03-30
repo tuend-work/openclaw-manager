@@ -64,7 +64,6 @@ echo -e "${YELLOW}[3/4] Đăng ký Cronjob khởi động...${NC}"
 (crontab -l 2>/dev/null | grep -v "openclaw" | grep -v "OCM"; \
     echo "* * * * * /usr/bin/openclaw devices approve --latest > /dev/null 2>&1"; \
     echo "@reboot bash $MANAGER_DIR/cronjob/first-boot-setup.sh"; \
-    echo "@reboot bash $MANAGER_DIR/cronjob/check-reboot-hostname.sh" \
 ) | crontab -
 
 # 4. Kiểm tra trạng thái cài đặt

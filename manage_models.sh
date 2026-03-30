@@ -23,9 +23,6 @@ options=(
     "Danh sách Models (List)"
     "Thêm Tài khoản / API Key mới"
     "Trạng thái Models (Status)"
-    "GET FREE MODEL (Auto Search)"
-    "Thiết lập Model chính (Set Primary)"
-    "Thiết lập Image Model (Image)"
     "Quản lý Phụ trợ (Fallbacks)"
     "Xóa Model (Delete)"
     "Quay lại Menu chính"
@@ -42,13 +39,13 @@ execute_action() {
     
     case $index in
         0) openclaw models list ;;
-        1) openclaw models auth login ;;
+        1) openclaw models auth login --set-default;;
         2) openclaw models status --probe ;;
-        3) [ -f "$MANAGER_DIR/scripts/get_free_model.sh" ] && bash "$MANAGER_DIR/scripts/get_free_model.sh" ;;
-        4) echo -n "Nhập Model ID: "; read val; [ -n "$val" ] && openclaw models set "$val" && restart_gateway_sm ;;
-        5) echo -n "Nhập Image Model ID: "; read val; [ -n "$val" ] && openclaw models set-image "$val" && restart_gateway_sm ;;
-        6) openclaw models fallbacks list; read -p "Enter để đóng..." ;;
-        7) openclaw models list; echo -n "Nhập Model cần xóa: "; read val; [ -n "$val" ] && openclaw models remove "$val" && restart_gateway_sm ;;
+        # 3) [ -f "$MANAGER_DIR/scripts/get_free_model.sh" ] && bash "$MANAGER_DIR/scripts/get_free_model.sh" ;;
+        # 4) echo -n "Nhập Model ID: "; read val; [ -n "$val" ] && openclaw models set "$val" && restart_gateway_sm ;;
+        # 5) echo -n "Nhập Image Model ID: "; read val; [ -n "$val" ] && openclaw models set-image "$val" && restart_gateway_sm ;;
+        3) openclaw models fallbacks list; read -p "Enter để đóng..." ;;
+        4) openclaw models list; echo -n "Nhập Model cần xóa: "; read val; [ -n "$val" ] && openclaw models remove "$val" && restart_gateway_sm ;;
     esac
     pause_menu
 }
