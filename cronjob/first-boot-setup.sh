@@ -12,6 +12,24 @@ MANAGER_DIR="/root/openclaw-manager"
 OCM_ENV_FILE="$MANAGER_DIR/.env"
 LOG_FILE="/var/log/ocm_first_boot.log"
 
+# --- TỰ ĐỘNG CẬP NHẬT OCM TRƯỚC KHI CÀI ĐẶT ---
+if [[ "$*" != *"--no-update"* ]]; then
+    if [ -d "$MANAGER_DIR/.git" ]; then
+        echo "[$(date)] >>> Đang kiểm tra bản cập nhật OCM mới nhất..." >> "$LOG_FILE"
+        cd "$MANAGER_DIR" || exit 1
+        git fetch --quiet origin main > /dev/null 2>&1
+        LOCAL=$(git rev-parse HEAD)
+        REMOTE=$(git rev-parse origin/main)
+        if [ "$LOCAL" != "$REMOTE" ]; then
+            echo "[$(date)] >>> Phát hiện bản OCM mới. Đang tự động nâng cấp trước khi cài đặt..." >> "$LOG_FILE"
+            git reset --hard origin/main > /dev/null 2>&1
+            chmod +x "$MANAGER_DIR"/*.sh "$MANAGER_DIR"/scripts/*.sh "$MANAGER_DIR"/cronjob/*.sh
+            echo "[$(date)] >>> Nâng cấp OCM thành công. Đang khởi động lại script..." >> "$LOG_FILE"
+            exec bash "$0" "$@" --no-update
+        fi
+    fi
+fi
+
 # --- Kiểm tra trạng thái FIRST_BOOT_STATUS ---
 # false (mặc định), installing (đang cài đặt), done (hoàn tất)
 FIRST_BOOT_STATUS="false"
