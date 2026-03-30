@@ -63,7 +63,13 @@ step_1_domain() {
         fi
         echo ""
     else
-        echo -e "${GREEN}✅ Bước 1: Domain & SSL đã sẵn sàng ($DOMAIN_NAME).${NC}"
+        echo -e "${GREEN}✅ Bước 1: Domain & SSL hiện tại ($DOMAIN_NAME) đã sẵn sàng.${NC}"
+        echo -ne "Bạn có muốn thay đổi tên miền khác hoặc cấu hình lại không? (y/n): "; read choice
+        if [[ "$choice" =~ ^[yY] ]]; then
+            source "$MANAGER_DIR/manage_domain.sh"
+            setup_domain_ssl "$DOMAIN_NAME"
+        fi
+        echo ""
     fi
 }
 
