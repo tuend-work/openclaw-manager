@@ -39,7 +39,11 @@ execute_action() {
     case $index in
         0) echo -n "Nhập Cổng mới (Mặc định 18789): "; read val
            [ -n "$val" ] && openclaw config set gateway.port "$val" && restart_gateway ;;
-        1) echo -n "Nhập Gateway Token bảo mật mới: "; read val
+        1) echo -ne "Nhập Gateway Token bảo mật mới (${CYAN}Nhấn Enter để tự tạo ngẫu nhiên${NC}): "; read val
+           if [ -z "$val" ]; then
+                val=$(openssl rand -hex 32)
+                echo -e "${GREEN}    - Đã tạo ngẫu nhiên mật mã Token cho bạn.${NC}"
+           fi
            if [ -n "$val" ]; then
                 ENV_PATH="/root/.openclaw/.env"
                 if [ ! -f "$ENV_PATH" ]; then
