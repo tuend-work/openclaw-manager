@@ -14,8 +14,9 @@ JSON_FILE="/root/.openclaw/openclaw.json"
 # Nâng cao tính tương thích
 export TERM=${TERM:-xterm-256color}
 
-# Load UI Helper
+# Load UI Helper & Modules
 source "$MANAGER_DIR/scripts/ui_helper.sh"
+source "$MANAGER_DIR/manage_domain.sh"
 
 show_wizard_header() {
     clear
