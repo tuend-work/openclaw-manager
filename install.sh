@@ -42,10 +42,13 @@ sed -i '/boot.sh/d' ~/.bashrc
 sed -i '/SetupWizard.sh/d' ~/.bashrc
 sed -i '/check_update_silent.sh/d' ~/.bashrc
 
+# Reset Wizard flag for fresh install
+rm -f "$HOME/.openclaw/.wizard_done" > /dev/null 2>&1
+
 echo "export XDG_RUNTIME_DIR=\"/run/user/\$UID\"" >> ~/.bashrc
 echo "export DBUS_SESSION_BUS_ADDRESS=\"unix:path=\${XDG_RUNTIME_DIR}/bus\"" >> ~/.bashrc
 echo "if [ -f \"$MANAGER_DIR/scripts/check_update_silent.sh\" ]; then bash \"$MANAGER_DIR/scripts/check_update_silent.sh\"; fi" >> ~/.bashrc
-echo "if [ -f \"$MANAGER_DIR/SetupWizard.sh\" ]; then bash \"$MANAGER_DIR/SetupWizard.sh\"; fi" >> ~/.bashrc
+echo "if [ -f \"$MANAGER_DIR/boot.sh\" ]; then bash \"$MANAGER_DIR/boot.sh\"; fi" >> ~/.bashrc
 
 # Also add to /etc/profile.d for sudo -i cases
 if [ -d "/etc/profile.d" ]; then

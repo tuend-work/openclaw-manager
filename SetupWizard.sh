@@ -176,6 +176,10 @@ echo -e "${BLUE}================================================${NC}"
 echo -e "${GREEN}       WIZARD CẤU HÌNH ĐÃ HOÀN TẤT!             ${NC}"
 echo -e "${BLUE}================================================${NC}"
 echo -e "${YELLOW}Bạn có thể sử dụng 'ocm' để quản lý chi tiết hơn.${NC}"
+# Đánh dấu đã chạy Wizard lần đầu
+mkdir -p "$(dirname "$ENV_FILE")"
+touch "$HOME/.openclaw/.wizard_done"
+
 echo -e "${YELLOW}⚡ Đang chuyển sang Menu quản lý chính...${NC}"
 sleep 1
 bash "$MANAGER_DIR/menu.sh"
