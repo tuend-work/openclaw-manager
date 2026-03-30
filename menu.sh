@@ -16,6 +16,16 @@ if [ "$EUID" -ne 0 ]; then
     exit 1
 fi
 
+# Tự động chạy Wizard nếu phát hiện lần đầu chưa cấu hình
+WIZARD_DONE="$HOME/.openclaw/.wizard_done"
+if [ ! -f "$WIZARD_DONE" ] && [ -f "$MANAGER_DIR/SetupWizard.sh" ]; then
+    echo -e "${YELLOW}🔍 Phát hiện hệ thống chưa hoàn tất cấu hình nhanh.${NC}"
+    echo -e "${CYAN}🚀 Đang khởi động Setup Wizard (Trình khởi tạo nhanh)...${NC}"
+    sleep 1.5
+    exec bash "$MANAGER_DIR/SetupWizard.sh"
+    exit 0
+fi
+
 IP_ADDR=$(hostname -I | awk '{print $1}')
 OPENCLAW_VER=$(openclaw --version 2>/dev/null | awk '{print $2}' || echo "N/A")
 OCM_VER="${OCM_VERSION:-N/A}"
