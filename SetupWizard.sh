@@ -56,7 +56,8 @@ step_1_domain() {
         echo -ne "Bạn có muốn thiết lập Domain & SSL ngay bây giờ? (y/n): "; read choice
         if [[ "$choice" =~ ^[yY] ]]; then
             source "$MANAGER_DIR/manage_domain.sh"
-            setup_domain_ssl
+            # Truyền domain hiện tại làm gợi ý cho quy trình thiết lập
+            setup_domain_ssl "$DOMAIN_NAME"
         else
             echo -e "${MAGENTA}Bỏ qua Bước 1. Lưu ý: Hệ thống có thể không truy cập được từ bên ngoài.${NC}"
         fi

@@ -11,15 +11,20 @@ MANAGER_DIR="$( cd "$( dirname "$REAL_PATH" )" &> /dev/null && pwd )"
 source "$MANAGER_DIR/scripts/ui_helper.sh"
 
 setup_domain_ssl() {
-    local domain=$1
+    local suggested_domain=$1
     local port=$2
 
     [ -t 1 ] && tput cnorm
-    echo -e "${YELLOW}>>> CẤU HÌNH DOMAIN & SSL (AUTO MODE) <<<${NC}"
+    echo -e "${YELLOW}>>> QUY TRÌNH CẤU HÌNH DOMAIN & SSL <<<${NC}"
     echo -e "${BLUE}------------------------------------------------${NC}"
     
     # Nếu không có tham số -> Yêu cầu nhập
-    if [ -z "$domain" ]; then
+    local input_domain=""
+    if [ -n "$suggested_domain" ]; then
+        echo -ne "Nhập domain (${CYAN}Nhấn Enter nếu muốn dùng domain hệ thống cấp: ${WHITE}$suggested_domain${NC}): "
+        read input_domain
+        domain=${input_domain:-$suggested_domain}
+    else
         echo -n "Nhập domain mới (vd: ai.example.com): "
         read domain
     fi
