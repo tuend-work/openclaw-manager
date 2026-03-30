@@ -81,15 +81,15 @@ EOF
     [ -t 1 ] && [ -z "$1" ] && pause_menu
 }
 
-# --- DISPATCHER ---
-# Nếu được gọi với tham số (vú dụ từ First Boot), chạy thẳng rồi thoát
-if [[ -n "$1" ]]; then
-    setup_domain_ssl "$@"
-    exit 0
-fi
-
-# --- MODE MENU TƯƠNG TÁC ---
+# --- CHẾ ĐỘ THỰC THI ---
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+    # 1. Chế độ dòng lệnh (Auto/Direct): Chỉ chạy nếu có tham số
+    if [[ -n "$1" ]]; then
+        setup_domain_ssl "$@"
+        exit 0
+    fi
+
+    # 2. Chế độ điều khiển Menu (Interactive)
     options=("Cài đặt bài bản Domain & SSL" "Kiểm tra cấu hình Nginx" "Quay lại Menu chính")
     current=0
     
