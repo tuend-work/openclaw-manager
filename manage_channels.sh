@@ -81,15 +81,15 @@ add_channel_enhanced() {
     tput cnorm
     echo -e "\n${CYAN}--- BƯỚC 1: CHỌN LOẠI KÊNH ---${NC}"
     echo -e "1. Telegram"
-    echo -e "2. Zalo (Dùng số điện thoại/token)"
-    echo -e "3. Khác (Tự nhập tay)"
+    # echo -e "2. Zalo (Dùng số điện thoại/token)"
+    echo -e "2. Khác (Tự nhập tay)"
     echo -ne "${YELLOW}➤ Lựa chọn [1-3]:${NC} "
     read c_type_choice
     
     case $c_type_choice in
         1) channel_type="telegram" ;;
-        2) channel_type="zalo" ;;
-        3) echo -ne "${YELLOW}➤ Nhập tên loại kênh (VD: discord):${NC} "; read channel_type ;;
+        # 2) channel_type="zalo" ;;
+        2) echo -ne "${YELLOW}➤ Nhập tên loại kênh (VD: discord):${NC} "; read channel_type ;;
         *) channel_type="telegram" ;;
     esac
 
