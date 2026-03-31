@@ -49,9 +49,14 @@ show_header() {
     local title=$1
     local domain_name=$(hostname)
     local gateway_token="N/A"
-    if [ -f "/root/.openclaw/.env" ]; then
-        domain_name=$(grep "^DOMAIN_NAME=" /root/.openclaw/.env | cut -d'=' -f2 | tr -d '"'\'' ')
-        gateway_token=$(grep "^OPENCLAW_GATEWAY_TOKEN=" /root/.openclaw/.env | cut -d'=' -f2 | tr -d '"'\'' ')
+    local gateway_pass=""
+    local env_file="/root/.openclaw/.env"
+    [ -f "$env_file" ] || env_file="$MANAGER_DIR/.env"
+
+    if [ -f "$env_file" ]; then
+        domain_name=$(grep "^DOMAIN_NAME=" "$env_file" | cut -d'=' -f2 | tr -d '"'\'' ')
+        gateway_token=$(grep "^OPENCLAW_GATEWAY_TOKEN=" "$env_file" | cut -d'=' -f2 | tr -d '"'\'' ')
+        gateway_pass=$(grep "^OPENCLAW_GATEWAY_PASSWORD=" "$env_file" | cut -d'=' -f2 | tr -d '"'\'' ')
     fi
     [ -z "$domain_name" ] && domain_name=$(hostname)
 
@@ -64,7 +69,12 @@ show_header() {
     echo -e " ${WHITE}●${NC} Disk: ${YELLOW}${SYS_DISK}${NC} | Uptime: ${YELLOW}${SYS_UPTIME}${NC}"
     echo -e " ${WHITE}●${NC} Net: ${GREEN}↓ ${SYS_NET_IN}M/s${NC} | ${RED}↑ ${SYS_NET_OUT}M/s${NC}"
     echo -e "${CYAN}------------------------------------------------${NC}"
-    echo -e " ${WHITE}●${NC} Dashboard: ${CYAN}https://${domain_name}/#token=${gateway_token}${NC}"
+    
+    if [ -n "$gateway_pass" ]; then
+        echo -e " ${WHITE}●${NC} Dashboard: ${CYAN}https://${domain_name}${NC} (Using Password Mode)"
+    else
+        echo -e " ${WHITE}●${NC} Dashboard: ${CYAN}https://${domain_name}/#token=${gateway_token}${NC}"
+    fi
 }
 
 # Added Pause function for reuse

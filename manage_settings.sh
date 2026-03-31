@@ -20,7 +20,8 @@ restart_gateway() {
 
 options=(
     "Cổng Gateway (gateway.port)"
-    "Gateway Token (Auth Token)"
+    "Set Gateway Token (gateway.token)"
+    "Set Password Mode (gateway.password)"
     "Allowed Origins (CORS)"
     "SetupWizard (Trình khởi tạo nhanh)"
     "Khởi động lại OpenClaw"
@@ -31,7 +32,7 @@ current=0
 
 execute_action() {
     local index=$1
-    if [ $index -eq 5 ]; then exit 0; fi 
+    if [ $index -eq 6 ]; then exit 0; fi 
     
     echo -e "${CYAN}────────────────────────────────────────────────${NC}"
     tput cnorm
@@ -46,10 +47,7 @@ execute_action() {
            fi
            if [ -n "$val" ]; then
                 ENV_PATH="/root/.openclaw/.env"
-                if [ ! -f "$ENV_PATH" ]; then
-                    # Fallback to local .env if root one missing
-                    ENV_PATH="$MANAGER_DIR/.env"
-                fi
+                [ -f "$ENV_PATH" ] || ENV_PATH="$MANAGER_DIR/.env"
 
                 if [ -f "$ENV_PATH" ]; then
                     if grep -q "^OPENCLAW_GATEWAY_TOKEN=" "$ENV_PATH"; then
@@ -57,22 +55,44 @@ execute_action() {
                     else
                         echo "OPENCLAW_GATEWAY_TOKEN=\"$val\"" >> "$ENV_PATH"
                     fi
-                    echo -e "${GREEN}✅ Đã cập nhật Token mới vào file $ENV_PATH!${NC}"
-                    
+                    # Xóa password mode khi chuyển sang Token
+                    sed -i "/^OPENCLAW_GATEWAY_PASSWORD=/d" "$ENV_PATH"
+                    openclaw config set gateway.password "" 2>/dev/null
+
+                    echo -e "${GREEN}✅ Đã cập nhật Token mới!${NC}"
                     echo -e "${YELLOW}🧹 Đang dọn dẹp Sessions và Devices cũ...${NC}"
                     openclaw sessions reset --all --yes 2>/dev/null
                     openclaw devices remove --all --yes 2>/dev/null
                     echo -e "${GREEN}✅ Đã dọn dẹp sạch sẽ!${NC}"
-                    
                     restart_gateway
                 else
-                    echo -e "${RED}❌ Lỗi: Không tìm thấy file .env tại bất kỳ đâu.${NC}"
+                    echo -e "${RED}❌ Lỗi: Không tìm thấy file .env.${NC}"
                 fi
            fi ;;
-        2) echo -n "Nhập Domain (CORS allowedOrigins): "; read val
+        2) # Password Mode
+           echo -ne "Nhập Mật khẩu Dashboard mới: "; read val
+           if [ -n "$val" ]; then
+                openclaw config set gateway.password "$val"
+                ENV_PATH="/root/.openclaw/.env"
+                [ -f "$ENV_PATH" ] || ENV_PATH="$MANAGER_DIR/.env"
+                if [ -f "$ENV_PATH" ]; then
+                    if grep -q "^OPENCLAW_GATEWAY_PASSWORD=" "$ENV_PATH"; then
+                        sed -i "s|^OPENCLAW_GATEWAY_PASSWORD=.*|OPENCLAW_GATEWAY_PASSWORD=\"$val\"|" "$ENV_PATH"
+                    else
+                        echo "OPENCLAW_GATEWAY_PASSWORD=\"$val\"" >> "$ENV_PATH"
+                    fi
+                    # Xóa Token khi chuyển sang Password Mode
+                    sed -i "/^OPENCLAW_GATEWAY_TOKEN=/d" "$ENV_PATH"
+                    echo -e "${GREEN}✅ Đã bật Password Mode! Dashboard sẽ yêu cầu mật khẩu.${NC}"
+                    restart_gateway
+                fi
+           else
+                echo -e "${RED}Mật khẩu không được để trống.${NC}"
+           fi ;;
+        3) echo -n "Nhập Domain (CORS allowedOrigins): "; read val
            [ -n "$val" ] && openclaw config set gateway.controlUi.allowedOrigins "[\"$val\"]" && restart_gateway ;;
-        3) bash "$MANAGER_DIR/SetupWizard.sh" ;;
-        4) systemctl restart openclaw > /dev/null 2>&1; echo -e "${GREEN}Restart hoàn tất!${NC}" ;;
+        4) bash "$MANAGER_DIR/SetupWizard.sh" ;;
+        5) systemctl restart openclaw > /dev/null 2>&1; echo -e "${GREEN}Restart hoàn tất!${NC}" ;;
     esac
     pause_menu
 }
@@ -82,12 +102,12 @@ if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
         gather_system_stats
         clear
         show_header "CẤU HÌNH THÔNG SỐ (SETTINGS)"
-        echo -e " ${BOLD}${YELLOW}Sử dụng [↑/↓] hoặc phím số [1-9, 0]:${NC}"
+        echo -e " ${BOLD}${YELLOW}Sử dụng [↑/↓] hoặc phím số [1-6, 0]:${NC}"
         echo ""
 
         for i in "${!options[@]}"; do
             display_num=$((i + 1))
-            [ $display_num -eq 10 ] && display_num=0
+            [ $display_num -eq 7 ] && display_num=0
             if [ "$i" -eq "$current" ]; then
                 echo -e "  ${BG_CYAN}${BOLD}${WHITE} ➜ $display_num. ${options[$i]} ${NC}"
             else
@@ -106,7 +126,7 @@ if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
                         "[A") current=$(( (current - 1 + ${#options[@]}) % ${#options[@]} )) ;;
                         "[B") current=$(( (current + 1) % ${#options[@]} )) ;;
                     esac ;;
-                [1-9]) execute_action $((key - 1)) ;;
+                [1-6]) execute_action $((key - 1)) ;;
                 0) exit 0 ;;
                 "") execute_action $current ;;
             esac

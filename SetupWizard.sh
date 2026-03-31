@@ -67,22 +67,22 @@ step_1_domain() {
     fi
 }
 
-# --- BƯỚC 2: KIỂM TRA GATEWAY TOKEN ---
-step_2_token() {
+# --- BƯỚC 2: THIẾT LẬP PASSWORD MODE ---
+step_2_password() {
     [ -f "$ENV_FILE" ] && source "$ENV_FILE"
-    if [[ "$OPENCLAW_GATEWAY_TOKEN" == "your_secure_random_token_here" || -z "$OPENCLAW_GATEWAY_TOKEN" ]]; then
-        echo -e "${YELLOW}[BƯỚC 2/6] CẤU HÌNH GATEWAY TOKEN (AUTH)${NC}"
-        echo -e "Phát hiện Token bảo mật hiện tại là mặc định hoặc trống."
-        echo -ne "Bạn có muốn tạo Token bảo mật mới? (y/n): "; read choice
+    if [ -z "$OPENCLAW_GATEWAY_PASSWORD" ]; then
+        echo -e "${YELLOW}[BƯỚC 2/6] THIẾT LẬP MẬT KHẨU DASHBOARD (PASSWORD MODE)${NC}"
+        echo -e "Chưa thiết lập mật khẩu đăng nhập Dashboard."
+        echo -ne "Bạn có muốn tạo mật khẩu ngay? (y/n): "; read choice
         if [[ "$choice" =~ ^[yY] ]]; then
             source "$MANAGER_DIR/manage_settings.sh"
-            execute_action 1 # 1 là index của Gateway Token
+            execute_action 2 # 2 là index của Password Mode
         else
             echo -e "${MAGENTA}Bỏ qua Bước 2.${NC}"
         fi
         echo ""
     else
-        echo -e "${GREEN}✅ BƯỚC 2: GATEWAY TOKEN đã có.${NC}"
+        echo -e "${GREEN}✅ BƯỚC 2: PASSWORD MODE đã được thiết lập.${NC}"
     fi
 }
 
@@ -167,7 +167,7 @@ show_wizard_header
 
 # Thực hiện tuần tự
 step_1_domain
-step_2_token
+step_2_password
 step_3_channels
 step_4_models
 step_5_agent_model
