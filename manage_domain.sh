@@ -15,7 +15,7 @@ setup_domain_ssl() {
     local port=$2
 
     [ -t 1 ] && tput cnorm
-    echo -e "${YELLOW}>>> QUY TRÌNH CẤU HÌNH DOMAIN & SSL <<<${NC}"
+    # echo -e "${YELLOW}>>> QUY TRÌNH CẤU HÌNH DOMAIN & SSL <<<${NC}"
     echo -e "${BLUE}------------------------------------------------${NC}"
     
     # Nếu không có tham số -> Yêu cầu nhập
