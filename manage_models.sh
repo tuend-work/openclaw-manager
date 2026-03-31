@@ -32,7 +32,7 @@ current=0
 
 execute_action() {
     local index=$1
-    if [ $index -eq 9 ]; then exit 0; fi 
+    if [ $index -eq 5 ]; then exit 0; fi 
     
     echo -e "${CYAN}────────────────────────────────────────────────${NC}"
     tput cnorm
@@ -41,9 +41,6 @@ execute_action() {
         0) openclaw models list ;;
         1) openclaw models auth login --set-default;;
         2) openclaw models status --probe ;;
-        # 3) [ -f "$MANAGER_DIR/scripts/get_free_model.sh" ] && bash "$MANAGER_DIR/scripts/get_free_model.sh" ;;
-        # 4) echo -n "Nhập Model ID: "; read val; [ -n "$val" ] && openclaw models set "$val" && restart_gateway_sm ;;
-        # 5) echo -n "Nhập Image Model ID: "; read val; [ -n "$val" ] && openclaw models set-image "$val" && restart_gateway_sm ;;
         3) openclaw models fallbacks list; read -p "Enter để đóng..." ;;
         4) openclaw models list; echo -n "Nhập Model cần xóa: "; read val; [ -n "$val" ] && openclaw models remove "$val" && restart_gateway_sm ;;
     esac
@@ -55,12 +52,12 @@ if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
         gather_system_stats
         clear
         show_header "QUẢN LÝ AI MODELS (MODELS)"
-        echo -e " ${BOLD}${YELLOW}Sử dụng [↑/↓] hoặc phím số [1-9, 0]:${NC}"
+        echo -e " ${BOLD}${YELLOW}Sử dụng [↑/↓] hoặc phím số [1-5, 0]:${NC}"
         echo ""
 
         for i in "${!options[@]}"; do
             display_num=$((i + 1))
-            [ $display_num -eq 10 ] && display_num=0
+            [ $display_num -eq 6 ] && display_num=0
             if [ "$i" -eq "$current" ]; then
                 echo -e "  ${BG_CYAN}${BOLD}${WHITE} ➜ $display_num. ${options[$i]} ${NC}"
             else
@@ -79,7 +76,7 @@ if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
                         "[A") current=$(( (current - 1 + ${#options[@]}) % ${#options[@]} )) ;;
                         "[B") current=$(( (current + 1) % ${#options[@]} )) ;;
                     esac ;;
-                [1-9]) execute_action $((key - 1)) ;;
+                [1-5]) execute_action $((key - 1)) ;;
                 0) exit 0 ;;
                 "") execute_action $current ;;
             esac
