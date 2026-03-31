@@ -52,12 +52,12 @@ step_1_domain() {
     fi
 
     if [ "$domain_ok" = false ]; then
-        echo -e "${YELLOW}[BƯỚC 1/6] Kiểm tra Domain & SSL${NC}"
-        echo -e "⚠️ Cảnh báo: Domain ($DOMAIN_NAME) $reason."
+        echo -e "${YELLOW}[BƯỚC 1/6] KIỂM TRA DOMAIN & SSL${NC}"
+        echo -e "⚠️ CẢNH BÁO: DOMAIN ($DOMAIN_NAME) $reason."
         setup_domain_ssl "$DOMAIN_NAME"
         echo ""
     else
-        echo -e "${GREEN}✅ Bước 1: Domain & SSL hiện tại ($DOMAIN_NAME) đã sẵn sàng.${NC}"
+        echo -e "${GREEN}✅ BƯỚC 1: DOMAIN & SSL hiện tại ($DOMAIN_NAME) đã sẵn sàng.${NC}"
         echo -ne "Bạn có muốn thay đổi tên miền khác hoặc cấu hình lại không? (y/n): "; read choice
         if [[ "$choice" =~ ^[yY] ]]; then
             source "$MANAGER_DIR/manage_domain.sh"
@@ -71,7 +71,7 @@ step_1_domain() {
 step_2_token() {
     [ -f "$ENV_FILE" ] && source "$ENV_FILE"
     if [[ "$OPENCLAW_GATEWAY_TOKEN" == "your_secure_random_token_here" || -z "$OPENCLAW_GATEWAY_TOKEN" ]]; then
-        echo -e "${YELLOW}[BƯỚC 2/6] Cấu hình Gateway Token (Auth)${NC}"
+        echo -e "${YELLOW}[BƯỚC 2/6] CẤU HÌNH GATEWAY TOKEN (AUTH)${NC}"
         echo -e "Phát hiện Token bảo mật hiện tại là mặc định hoặc trống."
         echo -ne "Bạn có muốn tạo Token bảo mật mới? (y/n): "; read choice
         if [[ "$choice" =~ ^[yY] ]]; then
@@ -82,7 +82,7 @@ step_2_token() {
         fi
         echo ""
     else
-        echo -e "${GREEN}✅ Bước 2: Gateway Token đã có.${NC}"
+        echo -e "${GREEN}✅ BƯỚC 2: GATEWAY TOKEN đã có.${NC}"
     fi
 }
 
@@ -90,7 +90,7 @@ step_2_token() {
 step_3_channels() {
     NUM_CHANNELS=$(jq '.channels.telegram.accounts | length' "$JSON_FILE" 2>/dev/null || echo 0)
     if [ "$NUM_CHANNELS" -eq 0 ]; then
-        echo -e "${YELLOW}[BƯỚC 3/6] Thêm Kênh Chat (Telegram)${NC}"
+        echo -e "${YELLOW}[BƯỚC 3/6] THÊM KÊNH CHAT (TELEGRAM)${NC}"
         echo -e "Chưa tìm thấy Tài khoản Bot Telegram nào trong cấu hình."
         echo -ne "Bạn có muốn thêm Tài khoản Bot ngay? (y/n): "; read choice
         if [[ "$choice" =~ ^[yY] ]]; then
@@ -101,7 +101,7 @@ step_3_channels() {
         fi
         echo ""
     else
-        echo -e "${GREEN}✅ Bước 3: Đã có $NUM_CHANNELS kênh chat.${NC}"
+        echo -e "${GREEN}✅ BƯỚC 3: Đã có $NUM_CHANNELS kênh chat.${NC}"
     fi
 }
 
@@ -109,7 +109,7 @@ step_3_channels() {
 step_4_models() {
     NUM_PROFILES=$(jq '.auth.profiles | length' "$JSON_FILE" 2>/dev/null || echo 0)
     if [ "$NUM_PROFILES" -eq 0 ]; then
-        echo -e "${YELLOW}[BƯỚC 4/6] Cấu hình AI Model (API Key)${NC}"
+        echo -e "${YELLOW}[BƯỚC 4/6] CẤU HÌNH AI MODEL (API KEY)${NC}"
         echo -e "Chưa tìm thấy API Key (OpenRouter/OpenAI...) nào được xác thực."
         echo -ne "Bạn có muốn thêm API Key ngay? (y/n): "; read choice
         if [[ "$choice" =~ ^[yY] ]]; then
@@ -120,7 +120,7 @@ step_4_models() {
         fi
         echo ""
     else
-        echo -e "${GREEN}✅ Bước 4: Đã cấu hình $NUM_PROFILES tài khoản AI.${NC}"
+        echo -e "${GREEN}✅ BƯỚC 4: Đã cấu hình $NUM_PROFILES tài khoản AI.${NC}"
     fi
 }
 
@@ -128,7 +128,7 @@ step_4_models() {
 step_5_agent_model() {
     PRIMARY_MODEL=$(jq -r '.agents.defaults.model.primary // empty' "$JSON_FILE" 2>/dev/null)
     if [ -z "$PRIMARY_MODEL" ] || [ "$PRIMARY_MODEL" == "null" ]; then
-        echo -e "${YELLOW}[BƯỚC 5/6] Gán Model cho Agent${NC}"
+        echo -e "${YELLOW}[BƯỚC 5/6] GÁN MODEL CHO AGENT${NC}"
         echo -e "Agent 'main' chưa được gán Model AI mặc định."
         echo -ne "Bạn có muốn gán Model cho Agent ngay? (y/n): "; read choice
         if [[ "$choice" =~ ^[yY] ]]; then
@@ -139,7 +139,7 @@ step_5_agent_model() {
         fi
         echo ""
     else
-        echo -e "${GREEN}✅ Bước 5: Agent đã được gán model ($PRIMARY_MODEL).${NC}"
+        echo -e "${GREEN}✅ BƯỚC 5: Agent đã được gán model ($PRIMARY_MODEL).${NC}"
     fi
 }
 
@@ -147,7 +147,7 @@ step_5_agent_model() {
 step_6_bindings() {
     NUM_BINDINGS=$(jq '.bindings | length' "$JSON_FILE" 2>/dev/null || echo 0)
     if [ "$NUM_BINDINGS" -eq 0 ]; then
-        echo -e "${YELLOW}[BƯỚC 6/6] Kết nối Kênh chat vào Agent (Bindings)${NC}"
+        echo -e "${YELLOW}[BƯỚC 6/6] KẾT NỐI KÊNH CHAT VÀO AGENT (BINDINGS)${NC}"
         echo -e "Chưa có kết nối nào giữa Bot và Agent."
         echo -ne "Bạn có muốn tạo kết nối (Bind) ngay? (y/n): "; read choice
         if [[ "$choice" =~ ^[yY] ]]; then
@@ -158,7 +158,7 @@ step_6_bindings() {
         fi
         echo ""
     else
-        echo -e "${GREEN}✅ Bước 6: Đã có $NUM_BINDINGS kết nối Bindings.${NC}"
+        echo -e "${GREEN}✅ BƯỚC 6: Đã có $NUM_BINDINGS kết nối Bindings.${NC}"
     fi
 }
 

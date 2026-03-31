@@ -30,9 +30,8 @@ if [ -f "$LOG_FILE" ] && ! grep -q "FIRST BOOT SETUP HOÀN TẤT" "$LOG_FILE"; t
         echo -e "${RED}         ⚠️ HỆ THỐNG ĐANG ĐƯỢC CÀI ĐẶT           ${NC}"
         echo -e "${YELLOW}================================================${NC}"
         echo -e "${CYAN}Vui lòng chờ. Quá trình này đang diễn ra tự động.${NC}"
-        echo -e "${CYAN}OCM sẽ tự động mở Menu ngay sau khi hoàn tất.${NC}"
+        echo -e "${CYAN}OpenClaw Manager sẽ tự động mở Menu ngay sau khi hoàn tất.${NC}"
         echo -e "${BLUE}------------------------------------------------${NC}"
-        echo -e "${GRAY}Đang tải log thời gian thực...${NC}"
         echo ""
         
         # Touch để đảm bảo file tồn tại
