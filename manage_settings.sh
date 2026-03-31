@@ -48,6 +48,8 @@ execute_action() {
            if [ -n "$val" ]; then
                 ENV_PATH="/root/.openclaw/.env"
                 [ -f "$ENV_PATH" ] || ENV_PATH="$MANAGER_DIR/.env"
+                JSON_PATH="/root/.openclaw/openclaw.json"
+                [ -f "$JSON_PATH" ] || JSON_PATH="$MANAGER_DIR/openclaw-templates/openclaw.json"
 
                 if [ -f "$ENV_PATH" ]; then
                     if grep -q "^OPENCLAW_GATEWAY_TOKEN=" "$ENV_PATH"; then
@@ -57,24 +59,28 @@ execute_action() {
                     fi
                     # Xóa password mode khi chuyển sang Token
                     sed -i "/^OPENCLAW_GATEWAY_PASSWORD=/d" "$ENV_PATH"
-                    openclaw config set gateway.password "" 2>/dev/null
-
-                    echo -e "${GREEN}✅ Đã cập nhật Token mới!${NC}"
-                    echo -e "${YELLOW}🧹 Đang dọn dẹp Sessions và Devices cũ...${NC}"
-                    openclaw sessions reset --all --yes 2>/dev/null
-                    openclaw devices remove --all --yes 2>/dev/null
-                    echo -e "${GREEN}✅ Đã dọn dẹp sạch sẽ!${NC}"
-                    restart_gateway
-                else
-                    echo -e "${RED}❌ Lỗi: Không tìm thấy file .env.${NC}"
                 fi
+
+                # Cập nhật openclaw.json: auth.mode=token
+                if [ -f "$JSON_PATH" ]; then
+                    jq '.gateway.auth = {"mode": "token", "token": "'"$val"'"}' "$JSON_PATH" > "${JSON_PATH}.tmp" && mv "${JSON_PATH}.tmp" "$JSON_PATH"
+                fi
+
+                echo -e "${GREEN}✅ Đã cập nhật Token mới và chuyển auth mode sang Token!${NC}"
+                echo -e "${YELLOW}🧹 Đang dọn dẹp Sessions và Devices cũ...${NC}"
+                openclaw sessions reset --all --yes 2>/dev/null
+                openclaw devices remove --all --yes 2>/dev/null
+                echo -e "${GREEN}✅ Đã dọn dẹp sạch sẽ!${NC}"
+                restart_gateway
            fi ;;
         2) # Password Mode
            echo -ne "Nhập Mật khẩu Dashboard mới: "; read val
            if [ -n "$val" ]; then
-                openclaw config set gateway.password "$val"
                 ENV_PATH="/root/.openclaw/.env"
                 [ -f "$ENV_PATH" ] || ENV_PATH="$MANAGER_DIR/.env"
+                JSON_PATH="/root/.openclaw/openclaw.json"
+                [ -f "$JSON_PATH" ] || JSON_PATH="$MANAGER_DIR/openclaw-templates/openclaw.json"
+
                 if [ -f "$ENV_PATH" ]; then
                     if grep -q "^OPENCLAW_GATEWAY_PASSWORD=" "$ENV_PATH"; then
                         sed -i "s|^OPENCLAW_GATEWAY_PASSWORD=.*|OPENCLAW_GATEWAY_PASSWORD=\"$val\"|" "$ENV_PATH"
@@ -83,9 +89,15 @@ execute_action() {
                     fi
                     # Xóa Token khi chuyển sang Password Mode
                     sed -i "/^OPENCLAW_GATEWAY_TOKEN=/d" "$ENV_PATH"
-                    echo -e "${GREEN}✅ Đã bật Password Mode! Dashboard sẽ yêu cầu mật khẩu.${NC}"
-                    restart_gateway
                 fi
+
+                # Cập nhật openclaw.json: auth.mode=password
+                if [ -f "$JSON_PATH" ]; then
+                    jq '.gateway.auth = {"mode": "password", "password": "'"$val"'"}' "$JSON_PATH" > "${JSON_PATH}.tmp" && mv "${JSON_PATH}.tmp" "$JSON_PATH"
+                fi
+
+                echo -e "${GREEN}✅ Đã bật Password Mode! Dashboard sẽ yêu cầu mật khẩu.${NC}"
+                restart_gateway
            else
                 echo -e "${RED}Mật khẩu không được để trống.${NC}"
            fi ;;
