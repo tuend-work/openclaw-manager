@@ -165,6 +165,21 @@ delete_agent_enhanced() {
     fi
 }
 
+# 6. Thêm kết nối mới (Bind)
+add_binding_enhanced() {
+    tput cnorm
+    echo -e "\n${CYAN}--- TẠO KẾT NỐI MỚI (BIND) ---${NC}"
+    if select_agent; then
+        if select_channel_account; then
+            jq --arg aid "$selected_agent_id" --arg chan "$sel_chan" --arg acc "$sel_acc" \
+                '.bindings += [{"agentId": $aid, "match": {"channel": $chan, "accountId": $acc}}]' \
+                "$JSON_FILE" > "${JSON_FILE}.tmp" && mv "${JSON_FILE}.tmp" "$JSON_FILE"
+            echo -e "${GREEN}✅ Đã gán thành công!${NC}"
+            restart_gateway_sl
+        fi
+    fi
+}
+
 # Sub-menu for Bindings (Gán kênh chat)
 show_bindings_menu_enhanced() {
     local b_options=("Danh sách kết nối" "Tạo kết nối mới (Bind)" "Gỡ bỏ kết nối (Unbind)" "Quay lại")
@@ -203,16 +218,7 @@ show_bindings_menu_enhanced() {
                     jq -r '.bindings[] | "\(.agentId) ⇹ \(.match.channel) (\(.match.accountId))"' "$JSON_FILE" || echo "Trống."
                     pause_menu ;;
                 2) # Bind
-                    tput cnorm
-                    if select_agent; then
-                        if select_channel_account; then
-                            jq --arg aid "$selected_agent_id" --arg chan "$sel_chan" --arg acc "$sel_acc" \
-                               '.bindings += [{"agentId": $aid, "match": {"channel": $chan, "accountId": $acc}}]' \
-                               "$JSON_FILE" > "${JSON_FILE}.tmp" && mv "${JSON_FILE}.tmp" "$JSON_FILE"
-                            echo -e "${GREEN}✅ Đã gán thành công!${NC}"
-                            restart_gateway_sl
-                        fi
-                    fi
+                    add_binding_enhanced
                     pause_menu ;;
                 3) # Unbind
                     tput cnorm

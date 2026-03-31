@@ -152,7 +152,7 @@ step_6_bindings() {
         echo -ne "Bạn có muốn tạo kết nối (Bind) ngay? (y/n): "; read choice
         if [[ "$choice" =~ ^[yY] ]]; then
             source "$MANAGER_DIR/manage_ai.sh"
-            show_bindings_menu_enhanced
+            add_binding_enhanced
         else
             echo -e "${MAGENTA}Bỏ qua Bước 6.${NC}"
         fi
