@@ -53,7 +53,7 @@ step_1_domain() {
 
     if [ "$domain_ok" = false ]; then
         echo -e "${YELLOW}[BƯỚC 1/6] KIỂM TRA DOMAIN & SSL${NC}"
-        echo -e "⚠️ CẢNH BÁO: DOMAIN ($DOMAIN_NAME) $reason."
+        echo -e "(DOMAIN $DOMAIN_NAME $reason.)"
         setup_domain_ssl "$DOMAIN_NAME"
         echo ""
     else
