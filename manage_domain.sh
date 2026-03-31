@@ -90,7 +90,7 @@ if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
     fi
 
     # 2. Chế độ điều khiển Menu (Interactive)
-    options=("Cài đặt bài bản Domain & SSL" "Kiểm tra cấu hình Nginx" "Quay lại Menu chính")
+    options=("Cài đặt Domain & SSL" "Kiểm tra cấu hình Nginx" "Quay lại Menu chính")
     current=0
     
     while true; do
