@@ -72,7 +72,7 @@ while true; do
 
     for i in "${!options[@]}"; do
         display_num=$((i + 1))
-        [ $display_num -eq 11 ] && display_num=0
+        [ $display_num -eq 9 ] && display_num=0
         if [ "$i" -eq "$current" ]; then
             echo -e "  ${BG_CYAN}${BOLD}${WHITE} ➜ $display_num. ${options[$i]} ${NC}"
         else
