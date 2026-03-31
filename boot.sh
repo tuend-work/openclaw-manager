@@ -49,7 +49,8 @@ if [ -f "$LOG_FILE" ] && ! grep -q "FIRST BOOT SETUP HOÀN TẤT" "$LOG_FILE"; t
     # Giải phóng trap để Ctrl+C hoạt động lại bình thường trong Menu
     trap - SIGINT SIGTERM
     echo -e "\n${GREEN}✅ CÀI ĐẶT ĐÃ HOÀN TẤT! Đang chuẩn bị vào hệ thống...${NC}"
-    sleep 2
+    echo -ne "${YELLOW}➤ Nhấn ${BOLD}[Enter]${NC}${YELLOW} để bắt đầu thiết lập OpenClaw Manager...${NC} "
+    read -r
 fi
 
 # CHUYỂN HƯỚNG THÔNG MINH
