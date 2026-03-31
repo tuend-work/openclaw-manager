@@ -68,7 +68,7 @@ execute_action() {
 
                 echo -e "${GREEN}✅ Đã cập nhật Token mới và chuyển auth mode sang Token!${NC}"
                 echo -e "${YELLOW}🧹 Đang dọn dẹp Sessions và Devices cũ...${NC}"
-                openclaw sessions reset --all --yes 2>/dev/null
+                #openclaw sessions reset --all --yes 2>/dev/null
                 openclaw devices remove --all --yes 2>/dev/null
                 echo -e "${GREEN}✅ Đã dọn dẹp sạch sẽ!${NC}"
                 restart_gateway
@@ -97,6 +97,10 @@ execute_action() {
                 fi
 
                 echo -e "${GREEN}✅ Đã bật Password Mode! Dashboard sẽ yêu cầu mật khẩu.${NC}"
+                echo -e "${YELLOW}🧹 Đang dọn dẹp Sessions và Devices cũ...${NC}"
+                # openclaw sessions reset --all --yes 2>/dev/null
+                openclaw devices remove --all --yes 2>/dev/null
+                echo -e "${GREEN}✅ Đã dọn dẹp sạch sẽ!${NC}"
                 restart_gateway
            else
                 echo -e "${RED}Mật khẩu không được để trống.${NC}"
